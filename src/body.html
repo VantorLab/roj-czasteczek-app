@@ -19,10 +19,19 @@
       <span class="file-btn kiosk-shot"><button type="button" class="primary" tabindex="-1">Zrób zdjęcie</button><input id="kioskFile" type="file" accept="image/*" capture="environment" aria-label="Zrób zdjęcie"></span>
       <button type="button" class="kiosk-exit" id="kioskExit">Zamknij tryb klienta</button>
     </div>
+    <div class="confirm-bar" id="confirmBar" hidden role="status"><span id="confirmText">Zostawić zmianę?</span><button type="button" class="primary" id="confirmKeep">Gotowe</button><button type="button" id="confirmCancel">Anuluj</button></div>
+    <button type="button" class="show-panel" id="showPanel" hidden>Pokaż panel (H)</button>
     <div class="busy" id="busy" hidden><b id="busyTitle">Pracuję…</b><span id="busyText"></span><progress id="busyProg" max="1"></progress></div>
   </div>
 
   <aside class="panel" aria-label="Ustawienia efektu">
+    <div class="toolbar">
+      <button type="button" id="histUndo" title="Cofnij (Ctrl+Z)" disabled>↶ Cofnij</button>
+      <button type="button" id="histRedo" title="Ponów (Ctrl+Y)" disabled>↷ Ponów</button>
+      <span class="grow"></span>
+      <button type="button" id="btnKeys" title="Skróty klawiszowe (?)">Skróty</button>
+      <button type="button" id="btnHidePanel" title="Ukryj panel (H)">Ukryj panel</button>
+    </div>
     <nav class="tabs" role="tablist" id="tabs">
       <button role="tab" aria-selected="false" data-tab="ai" class="tab-ai">Doradca AI</button>
       <button role="tab" aria-selected="true" data-tab="shapes">Kształty</button>
@@ -176,6 +185,13 @@
         <div class="row"><label for="pStrength">Siła kursora</label><input id="pStrength" type="range" min="0" max="3" step="0.01" value="1"><output for="pStrength"></output></div>
         <div class="row"><label for="pRadius">Zasięg kursora</label><input id="pRadius" type="range" min="0.1" max="1.5" step="0.01" value="0.5"><output for="pRadius"></output></div>
         <label class="check"><input type="checkbox" id="autoRot"> Powolny obrót kamery</label>
+      </section>
+      <section>
+        <h2>Paralaksa <small>żyroskop / kursor</small></h2>
+        <label class="check"><input type="checkbox" id="parallaxOn"> Przechyl telefon, a scena 3D obróci się z nim (na komputerze: ruch kursora)</label>
+        <div class="row"><label for="parallaxAmt">Siła</label><input id="parallaxAmt" type="range" min="0.2" max="2" step="0.01" value="1"><output for="parallaxAmt"></output></div>
+        <div class="btns"><button type="button" id="parallaxReset">Wyzeruj pozycję telefonu</button></div>
+        <p class="note">Na iPhonie przy pierwszym włączeniu zgódź się na dostęp do „Ruchu i orientacji”. Najlepiej wygląda z reliefem 3D i głębią AI. Działa w aplikacji na telefon; podgląd w Claude nie ma dostępu do czujników.</p>
       </section>
     </div>
 
@@ -384,5 +400,12 @@
   </header>
   <p class="note">Klikaj wokół obiektu, by postawić punkty obrysu; przeciągnij punkt, by go przesunąć. Wszystko poza obrysem zniknie.</p>
   <div class="canvas-wrap"><canvas id="maskCanvas"></canvas></div>
+</div>
+<div class="modal keys" id="keysModal" hidden role="dialog" aria-modal="true" aria-labelledby="keysTitle">
+  <div class="keys-card">
+    <header><h3 id="keysTitle">Skróty klawiszowe</h3><button type="button" id="keysClose">Zamknij (Esc)</button></header>
+    <dl id="keysList"></dl>
+    <p class="note">Na Macu zamiast Ctrl użyj Cmd. W polach tekstowych Ctrl+Z cofa tylko pisanie.</p>
+  </div>
 </div>
 <div class="toast" id="toast" hidden></div>

@@ -1006,6 +1006,7 @@ function tick(dt) {
   bgUniforms.uTime.value = T;
   hooks.tick.forEach(f => f(dt));
   if (controls.enabled) controls.update(dt);
+  (hooks.post || []).forEach(f => f(dt));
 }
 function draw() { composer.render(); hooks.draw.forEach(f => f()); }
 

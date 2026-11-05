@@ -1,6 +1,6 @@
 [package]
 name = "roj-czasteczek"
-version = "1.0.0"
+version = "1.1.0"
 description = "Rój Cząsteczek"
 edition = "2021"
 

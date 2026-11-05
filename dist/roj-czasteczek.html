@@ -132,7 +132,22 @@ video.preview{width:100%;max-width:100%;border:1px solid var(--line);border-radi
 .idea span{font-weight:400;color:var(--mist);font-size:11.5px;line-height:1.4}
 .lessons{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px;color:var(--foam);font-size:12px;line-height:1.45}
 .lessons .note{list-style:none;margin-left:-18px}
+.toolbar{display:flex;align-items:center;gap:6px;padding:10px 12px 0;padding-right:max(12px,env(safe-area-inset-right,0px));flex:none}
+.toolbar button{padding:5px 10px;font-size:11.5px}
+.toolbar .grow{flex:1}
+.confirm-bar{position:absolute;left:50%;bottom:58px;transform:translateX(-50%);z-index:8;display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center;max-width:calc(100% - 32px);background:var(--deep);border:1px solid var(--glow);border-radius:999px;padding:6px 6px 6px 16px;font-size:12.5px;box-shadow:0 8px 30px rgba(0,0,0,.45)}
+.show-panel{position:absolute;top:max(16px,env(safe-area-inset-top,0px));right:max(16px,env(safe-area-inset-right,0px));z-index:4;background:color-mix(in srgb,var(--abyss) 70%,transparent)}
+.app.panel-hidden{grid-template-columns:minmax(0,1fr)}
+.app.panel-hidden .panel{display:none}
+.modal.keys{align-items:center;justify-content:center}
+.keys-card{background:var(--deep);border:1px solid var(--line);border-radius:12px;padding:18px 20px;max-width:560px;width:100%;max-height:100%;overflow:auto;display:flex;flex-direction:column;gap:12px}
+.keys-card header{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.keys-card dl{display:grid;grid-template-columns:auto 1fr;gap:8px 16px;margin:0;align-items:center}
+.keys-card dt{white-space:nowrap;font-size:12px;color:var(--mist)}
+.keys-card dd{margin:0;font-size:13px}
+kbd{font-family:var(--font-mono);font-size:11px;border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;padding:1px 6px;color:var(--foam);background:var(--abyss)}
 @media (max-width:760px){
+  .app.panel-hidden{grid-template-rows:100% 0}
   .app{grid-template-columns:minmax(0,1fr);grid-template-rows:52% 48%}
   .panel{border-left:0;border-top:1px solid var(--line)}
   .pane{padding-left:max(16px,env(safe-area-inset-left,0px))}
@@ -163,10 +178,19 @@ video.preview{width:100%;max-width:100%;border:1px solid var(--line);border-radi
       <span class="file-btn kiosk-shot"><button type="button" class="primary" tabindex="-1">Zrób zdjęcie</button><input id="kioskFile" type="file" accept="image/*" capture="environment" aria-label="Zrób zdjęcie"></span>
       <button type="button" class="kiosk-exit" id="kioskExit">Zamknij tryb klienta</button>
     </div>
+    <div class="confirm-bar" id="confirmBar" hidden role="status"><span id="confirmText">Zostawić zmianę?</span><button type="button" class="primary" id="confirmKeep">Gotowe</button><button type="button" id="confirmCancel">Anuluj</button></div>
+    <button type="button" class="show-panel" id="showPanel" hidden>Pokaż panel (H)</button>
     <div class="busy" id="busy" hidden><b id="busyTitle">Pracuję…</b><span id="busyText"></span><progress id="busyProg" max="1"></progress></div>
   </div>
 
   <aside class="panel" aria-label="Ustawienia efektu">
+    <div class="toolbar">
+      <button type="button" id="histUndo" title="Cofnij (Ctrl+Z)" disabled>↶ Cofnij</button>
+      <button type="button" id="histRedo" title="Ponów (Ctrl+Y)" disabled>↷ Ponów</button>
+      <span class="grow"></span>
+      <button type="button" id="btnKeys" title="Skróty klawiszowe (?)">Skróty</button>
+      <button type="button" id="btnHidePanel" title="Ukryj panel (H)">Ukryj panel</button>
+    </div>
     <nav class="tabs" role="tablist" id="tabs">
       <button role="tab" aria-selected="false" data-tab="ai" class="tab-ai">Doradca AI</button>
       <button role="tab" aria-selected="true" data-tab="shapes">Kształty</button>
@@ -320,6 +344,13 @@ video.preview{width:100%;max-width:100%;border:1px solid var(--line);border-radi
         <div class="row"><label for="pStrength">Siła kursora</label><input id="pStrength" type="range" min="0" max="3" step="0.01" value="1"><output for="pStrength"></output></div>
         <div class="row"><label for="pRadius">Zasięg kursora</label><input id="pRadius" type="range" min="0.1" max="1.5" step="0.01" value="0.5"><output for="pRadius"></output></div>
         <label class="check"><input type="checkbox" id="autoRot"> Powolny obrót kamery</label>
+      </section>
+      <section>
+        <h2>Paralaksa <small>żyroskop / kursor</small></h2>
+        <label class="check"><input type="checkbox" id="parallaxOn"> Przechyl telefon, a scena 3D obróci się z nim (na komputerze: ruch kursora)</label>
+        <div class="row"><label for="parallaxAmt">Siła</label><input id="parallaxAmt" type="range" min="0.2" max="2" step="0.01" value="1"><output for="parallaxAmt"></output></div>
+        <div class="btns"><button type="button" id="parallaxReset">Wyzeruj pozycję telefonu</button></div>
+        <p class="note">Na iPhonie przy pierwszym włączeniu zgódź się na dostęp do „Ruchu i orientacji”. Najlepiej wygląda z reliefem 3D i głębią AI. Działa w aplikacji na telefon; podgląd w Claude nie ma dostępu do czujników.</p>
       </section>
     </div>
 
@@ -528,6 +559,13 @@ video.preview{width:100%;max-width:100%;border:1px solid var(--line);border-radi
   </header>
   <p class="note">Klikaj wokół obiektu, by postawić punkty obrysu; przeciągnij punkt, by go przesunąć. Wszystko poza obrysem zniknie.</p>
   <div class="canvas-wrap"><canvas id="maskCanvas"></canvas></div>
+</div>
+<div class="modal keys" id="keysModal" hidden role="dialog" aria-modal="true" aria-labelledby="keysTitle">
+  <div class="keys-card">
+    <header><h3 id="keysTitle">Skróty klawiszowe</h3><button type="button" id="keysClose">Zamknij (Esc)</button></header>
+    <dl id="keysList"></dl>
+    <p class="note">Na Macu zamiast Ctrl użyj Cmd. W polach tekstowych Ctrl+Z cofa tylko pisanie.</p>
+  </div>
 </div>
 <div class="toast" id="toast" hidden></div>
 
@@ -1548,6 +1586,7 @@ function tick(dt) {
   bgUniforms.uTime.value = T;
   hooks.tick.forEach(f => f(dt));
   if (controls.enabled) controls.update(dt);
+  (hooks.post || []).forEach(f => f(dt));
 }
 function draw() { composer.render(); hooks.draw.forEach(f => f()); }
 
@@ -3046,6 +3085,166 @@ async function distill() {
   finally { $('aiStop').hidden = true; ['aiGo', 'aiChatGo', 'aiDistill'].forEach(id => $(id).disabled = AI.mode === 'none'); }
 }
 $('aiDistill').onclick = distill;
+
+/* ============================================================
+   UNDO / REDO · confirm bar (Gotowe / Anuluj) · keyboard shortcuts
+   History covers every setting in the panel, the timeline and the main effect.
+   ============================================================ */
+const hist = { undo: [], redo: [], cur: null, restoring: false, timer: null, before: null };
+function histSnap() { return JSON.stringify({ c: Object.fromEntries(controlIds().map(id => [id, getCtl(id)])), s: steps, m: FX.mode }); }
+function histCommit() {
+  clearTimeout(hist.timer); hist.timer = null;
+  if (hist.restoring) return;
+  const s = histSnap(); if (s === hist.cur) return;
+  if (hist.cur) { hist.undo.push(hist.cur); if (hist.undo.length > 120) hist.undo.shift(); }
+  hist.cur = s; hist.redo.length = 0; histUI();
+}
+function histTouch() { if (hist.restoring) return; clearTimeout(hist.timer); hist.timer = setTimeout(histCommit, 400); }
+function histRestore(s) {
+  hist.restoring = true;
+  try {
+    const o = JSON.parse(s);
+    steps = o.s; renderSteps(); applyControls(o.c); setMode(o.m);
+    if ($('resinOn').checked) setResinTarget($('resinColor').value);
+  } finally { setTimeout(() => { hist.restoring = false; hist.cur = histSnap(); histUI(); }, 0); }
+}
+function undo() {
+  if (hist.timer) histCommit();
+  if (!hist.undo.length) { toast('Nie ma czego cofnąć'); return; }
+  hist.redo.push(hist.cur); histRestore(hist.undo.pop()); toast('Cofnięto');
+}
+function redo() {
+  if (!hist.redo.length) { toast('Nie ma czego ponowić'); return; }
+  hist.undo.push(hist.cur); histRestore(hist.redo.pop()); toast('Ponowiono');
+}
+function histUI() { $('histUndo').disabled = !hist.undo.length && !hist.timer; $('histRedo').disabled = !hist.redo.length; }
+// record every change made in the panel (typing, sliders, selects, checkboxes)…
+['input', 'change'].forEach(ev => document.querySelector('.panel').addEventListener(ev, e => { if (!e.target.closest('#aiKeyBox')) histTouch(); }, true));
+// …and changes made in code: timeline edits and effect switches
+{ const rs = renderSteps; renderSteps = function () { rs(); histTouch(); }; }
+{ const sm = setMode; setMode = function (m) { sm(m); histTouch(); }; }
+$('histUndo').onclick = undo; $('histRedo').onclick = redo;
+
+/* ---------- confirm bar for big automatic changes ---------- */
+function histBegin(label) {
+  if (hist.timer) histCommit();
+  hist.before = hist.cur;
+  $('confirmText').textContent = label; $('confirmBar').hidden = false;
+}
+function confirmKeep() { $('confirmBar').hidden = true; hist.before = null; if (hist.timer) histCommit(); }
+function confirmCancel() {
+  $('confirmBar').hidden = true;
+  AI?.ctl?.abort?.();
+  if (hist.before) { if (hist.timer) histCommit(); if (hist.cur !== hist.before) { hist.undo.push(hist.cur); histRestore(hist.before); } toast('Anulowano zmianę'); }
+  hist.before = null;
+}
+$('confirmKeep').onclick = confirmKeep; $('confirmCancel').onclick = confirmCancel;
+const BEGIN = [['#aiGo', 'Propozycja Doradcy AI'], ['#aiChatGo', 'Poprawka Doradcy AI'], ['.idea', 'Pomysł Doradcy AI'], ['#btnSeqDefault', 'Domyślna sekwencja'], ['#btnSeqPhoto', 'Szablon: zdjęcie → rój'], ['#btnSeqResin', 'Szablon: kolory żywicy']];
+document.querySelector('.panel').addEventListener('click', e => { for (const [sel, label] of BEGIN) if (e.target.closest(sel)) { histBegin(label + ' — zostawić?'); break; } }, true);
+$('preset').addEventListener('change', () => { if ($('preset').value) histBegin('Szablon stylu „' + $('preset').value.replace(/^u:/, '') + '” — zostawić?'); }, true);
+
+/* ---------- panel visibility + fullscreen ---------- */
+function togglePanel(force) {
+  const app = document.querySelector('.app'), hide = force ?? !app.classList.contains('panel-hidden');
+  app.classList.toggle('panel-hidden', hide); $('showPanel').hidden = !hide;
+}
+$('showPanel').onclick = () => togglePanel(false);
+$('btnHidePanel').onclick = () => togglePanel(true);
+function toggleFullscreen() {
+  if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
+  else (document.documentElement.requestFullscreen?.() || Promise.reject()).catch(() => toast('Pełny ekran niedostępny w tym widoku'));
+}
+
+/* ---------- keyboard shortcuts ---------- */
+const KEYS = [
+  ['Ctrl + Z', 'Cofnij'], ['Ctrl + Y  /  Ctrl + Shift + Z', 'Ponów'], ['Ctrl + S', 'Zapisz projekt'], ['Ctrl + O', 'Otwórz projekt'],
+  ['Ctrl + Enter', 'Renderuj MP4'], ['Ctrl + Shift + S', 'Zrzut PNG'], ['P', 'Odtwórz / zatrzymaj sekwencję'], ['R', 'Nagrywaj na żywo / stop'],
+  ['M', 'Poprzedni kształt'], ['1 – 6', 'Przejdź do kształtu'], ['Spacja', 'Rozsyp'], ['F', 'Pełny ekran'], ['H', 'Ukryj / pokaż panel'],
+  ['Esc', 'Anuluj / zamknij / stop'], ['Enter', 'Gotowe (gdy widać pasek potwierdzenia)'], ['?', 'Ta lista skrótów']
+];
+$('keysList').innerHTML = KEYS.map(([k, v]) => `<dt>${k.split('  /  ').map(x => x.split(' + ').map(y => `<kbd>${y}</kbd>`).join(' + ')).join(' / ')}</dt><dd>${v}</dd>`).join('');
+$('btnKeys').onclick = () => $('keysModal').hidden = false;
+$('keysClose').onclick = () => $('keysModal').hidden = true;
+addEventListener('keydown', e => {
+  const mod = e.ctrlKey || e.metaKey, k = e.key.toLowerCase();
+  const typing = e.target.matches('input[type=text],input[type=number],input[type=password],textarea') || e.target.isContentEditable;
+  if (e.key === 'Escape') {
+    if (!$('keysModal').hidden) { $('keysModal').hidden = true; return; }
+    if (!$('confirmBar').hidden) { confirmCancel(); return; }
+    if (!$('maskModal').hidden) { $('maskModal').hidden = true; return; }
+    if (!$('kiosk').hidden) { $('kioskExit').click(); return; }
+    if (seq.playing) { stopSeq(); return; }
+    return;
+  }
+  if (mod && k === 's' && !e.shiftKey) { e.preventDefault(); $('btnSaveProj').click(); return; }
+  if (mod && k === 's' && e.shiftKey) { e.preventDefault(); $('btnPng').click(); return; }
+  if (mod && k === 'o') { e.preventDefault(); $('projFile').click(); return; }
+  if (mod && e.key === 'Enter') { e.preventDefault(); $('btnRender').click(); return; }
+  if (typing) return;                                 // let text fields keep their own undo
+  if (mod && k === 'z' && !e.shiftKey) { e.preventDefault(); undo(); return; }
+  if (mod && (k === 'y' || (k === 'z' && e.shiftKey))) { e.preventDefault(); redo(); return; }
+  if (mod || e.altKey) return;
+  if (e.target.matches('select')) return;
+  if (e.key === 'Enter' && !$('confirmBar').hidden) { confirmKeep(); return; }
+  if (k === 'p') { seq.playing ? stopSeq() : playSeq(); }
+  else if (k === 'r') $('btnRec').click();
+  else if (k === 'f') toggleFullscreen();
+  else if (k === 'h') togglePanel();
+  else if (e.key === '?') $('keysModal').hidden = false;
+});
+setTimeout(() => { hist.cur = histSnap(); histUI(); }, 1500);
+
+/* ============================================================
+   PARALLAX — tilt the phone (gyroscope) or move the mouse and the 3D scene
+   turns with you, like the reference site. Works with every effect;
+   depth (particles, relief, voxels, glass) is what makes it feel 3D.
+   ============================================================ */
+const par = { on: false, gyro: false, lastGyro: 0, gx: 0, gy: 0, mx: 0, my: 0, b0: null, g0: null, x: 0, y: 0, applied: new THREE.Vector3(), _s: new THREE.Spherical(), _t: new THREE.Vector3() };
+function onOrient(e) {
+  if (e.beta == null || e.gamma == null) return;
+  if (par.b0 == null) { par.b0 = e.beta; par.g0 = e.gamma; }           // the pose when switched on = neutral
+  const landscape = Math.abs(window.orientation || screen.orientation?.angle || 0) === 90;
+  let dx = e.gamma - par.g0, dy = e.beta - par.b0;
+  if (landscape) [dx, dy] = [dy, -dx];
+  par.gx = Math.max(-1, Math.min(1, dx / 28)); par.gy = Math.max(-1, Math.min(1, dy / 28));
+  par.gyro = true; par.lastGyro = performance.now();
+}
+async function parallaxOn() {
+  // iPhone asks permission, and only from a tap
+  try {
+    if (window.DeviceOrientationEvent && typeof DeviceOrientationEvent.requestPermission === 'function') {
+      const r = await DeviceOrientationEvent.requestPermission();
+      if (r !== 'granted') toast('Bez zgody na czujnik ruchu paralaksa działa kursorem/dotykiem');
+    }
+  } catch { /* desktop or blocked: mouse parallax still works */ }
+  addEventListener('deviceorientation', onOrient);
+  par.on = true; par.b0 = par.g0 = null;
+}
+function parallaxOff() { removeEventListener('deviceorientation', onOrient); par.on = false; }
+$('parallaxOn').addEventListener('change', () => $('parallaxOn').checked ? parallaxOn() : parallaxOff());
+$('parallaxReset').onclick = () => { par.b0 = par.g0 = null; toast('Ustawiono obecne położenie telefonu jako środek'); };
+cv.addEventListener('pointermove', e => { const r = cv.getBoundingClientRect(); par.mx = ((e.clientX - r.left) / r.width) * 2 - 1; par.my = ((e.clientY - r.top) / r.height) * 2 - 1; });
+cv.addEventListener('pointerleave', () => { par.mx = par.my = 0; });
+
+const camScripted = () => seq.playing && $('camMove').value !== 'none';
+hooks.tick.push(() => {                       // before OrbitControls: take last frame's offset back out
+  if (!camScripted()) camera.position.sub(par.applied);
+  par.applied.set(0, 0, 0);
+});
+hooks.post = hooks.post || [];
+hooks.post.push(dt => {                       // after OrbitControls: add this frame's tilt
+  if (!par.on || rendering || reduced) { par.x = par.y = 0; return; }
+  const useGyro = par.gyro && performance.now() - par.lastGyro < 1000;
+  const tx = useGyro ? par.gx : par.mx * 0.6, ty = useGyro ? par.gy : par.my * 0.6;
+  const k = 1 - Math.exp(-dt * 6); par.x += (tx - par.x) * k; par.y += (ty - par.y) * k;
+  const amt = P.parallaxAmt;
+  par._t.copy(controls.target);
+  const rel = camera.position.clone().sub(par._t); par._s.setFromVector3(rel);
+  par._s.theta -= par.x * 0.45 * amt; par._s.phi = Math.min(Math.PI - 0.1, Math.max(0.1, par._s.phi - par.y * 0.3 * amt));
+  const np = new THREE.Vector3().setFromSpherical(par._s).add(par._t);
+  par.applied.copy(np).sub(camera.position);
+  camera.position.copy(np); camera.lookAt(par._t);
+});
 /* ============================================================
    Boot + realtime loop
    ============================================================ */
