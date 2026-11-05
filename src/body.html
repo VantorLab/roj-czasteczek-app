@@ -107,6 +107,12 @@
 
     <div class="pane" data-pane="fx" hidden>
       <section>
+        <h2>Wygląd cząsteczek</h2>
+        <div class="row two"><label for="pStyle">Kształt</label><select id="pStyle"></select></div>
+        <div class="row"><label for="styleLen">Długość / skala</label><input id="styleLen" type="range" min="0.4" max="2.5" step="0.01" value="1"><output for="styleLen"></output></div>
+        <p class="note">Kreski, smugi, cyfry Matrix, gwiazdki, piksele albo pierścienie zamiast kropek. Gotowe połączenia znajdziesz w Sekwencja → Co ma się dziać?</p>
+      </section>
+      <section>
         <h2>Efekt główny</h2>
         <div class="row two"><label for="fxMode">Efekt</label>
           <select id="fxMode"><option value="particles">Cząsteczki</option><option value="relief">Relief 3D (symulator 2.5D)</option><option value="voxels">Klocki z fizyką</option></select></div>
@@ -223,6 +229,10 @@
     </div>
 
     <div class="pane" data-pane="seq" hidden>
+      <section>
+        <h2>Co ma się dziać? <small>kliknij, by ustawić i odtworzyć</small></h2>
+        <div class="scenarios" id="scenarios"></div>
+      </section>
       <section>
         <h2>Oś czasu <small id="seqLen">14.2 s</small></h2>
         <div class="steps" id="steps"></div>

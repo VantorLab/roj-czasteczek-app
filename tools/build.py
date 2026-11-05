@@ -8,7 +8,7 @@ import pathlib, re, json
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 SRC = ROOT / 'src'
-ORDER = ['app.js', 'features2.js', 'features3.js', 'features4.js', 'features5.js', 'features6.js', 'features7.js', 'features8.js', 'boot.js']
+ORDER = ['app.js', 'features2.js', 'features3.js', 'features4.js', 'features5.js', 'features6.js', 'features7.js', 'features8.js', 'features9.js', 'features10.js', 'boot.js']
 VERSION = (ROOT / 'VERSION').read_text().strip() if (ROOT / 'VERSION').exists() else '1.0.0'
 
 css = (SRC / 'style.css').read_text()

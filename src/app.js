@@ -524,7 +524,8 @@ float stagKey(vec3 a, float r){
 float morphOf(vec3 a, float r){ float k=stagKey(a,r); return smoothstep(k*.55,k*.55+.45,uMorph); }
 `;
 const velShader = `
-uniform float uTime,uDelta,uMorph,uSpring,uDamping,uNoise,uFlight,uScatter,uWave,uPointerRadius,uPointerStrength,uShock,uTrans,uWind,uGravity,uPour,uPourY,uPulse,uFlat;
+uniform float uTime,uDelta,uMorph,uSpring,uDamping,uNoise,uFlight,uScatter,uWave,uPointerRadius,uPointerStrength,uShock,uTrans,uWind,uGravity,uPour,uPourY,uPulse,uFlat,uVortex,uAttract,uBlow,uScan,uRain;
+uniform vec3 uBlowDir;
 uniform vec3 uPointer,uPointerVel,uShockOrigin;
 uniform sampler2D tFrom,tTo;
 ${NOISE}
@@ -540,8 +541,15 @@ void main(){
   target.z+=sin(uTime*1.3+target.x*2.2+target.y*1.7)*uWave*.12*(1.-uFlat);
   target.y+=cos(uTime*.9+target.x*1.5)*uWave*.04*(1.-uFlat);
   target.z*=1.-uFlat;
-  float hold=1.-uScatter;
-  vec3 acc=(target-p)*uSpring*12.*hold;
+  float hold=(1.-uScatter)*(1.-uVortex*.8)*(1.-uAttract);
+  vec3 extra=vec3(0.);
+  if(uBlow>0.){                                              // blown away like sand, one side first
+    float k=clamp(dot(ta.xyz,uBlowDir)/3.6+.5,0.,1.); float rel=smoothstep(k*.8,k*.8+.2,uBlow);
+    hold*=1.-rel; extra+=(uBlowDir*5.+vec3(0.,1.6,0.)+curl(p*.9+uTime*.4)*3.)*rel; }
+  if(uScan>-8.) hold*=step(target.x,uScan);                  // laser scan: only what the line has passed is built
+  extra+=(vec3(-p.z,0.,p.x)*4.+vec3(-p.x,0.,-p.z)*1.2+vec3(0.,1.4,0.))*uVortex;   // tornado
+  extra+=(-p)*uAttract*22.;                                  // implode to the centre
+  vec3 acc=(target-p)*uSpring*12.*hold+extra;
   float curlAmt=uNoise*.8*(1.-uFlat)+uScatter*5.;
   if(uTrans<.5) curlAmt+=tr*uFlight*6.;
   else if(uTrans<1.5){ curlAmt+=tr*uFlight*2.; acc+=vec3(0.,0.,1.)*tr*uFlight*5.; }
@@ -557,6 +565,7 @@ void main(){
   acc+=d/(dist+1e-4)*f*uPointerStrength*28.+uPointerVel*f*35.;
   vec3 ds=p-uShockOrigin; float sd=length(ds);
   acc+=ds/(sd+1e-4)*uShock*exp(-sd*1.4)*55.;
+  if(uRain>.5 && p.y>target.y+.03) acc=vec3(0.,-7.,0.);
   if(uPour>.5 && p.y>uPourY) acc=vec3(0.,-12.,0.)+curl(p*.4+uTime*.2)*.6;   // (10) pour: free fall until the stream reaches the shape
   v+=acc*uDelta;
   v*=pow(uDamping,uDelta*60.);
@@ -573,13 +582,13 @@ const renderUniforms = {
   uMorph: { value: 1 }, uTrans: { value: 0 }, uSize: { value: 0.015 }, uViewH: { value: 800 }, uFovK: { value: 0.7279 }, uOpacity: { value: 0.45 }, uTime: { value: 0 },
   uColorMode: { value: 0 }, uTint1: { value: new THREE.Color('#1b4dff') }, uTint2: { value: new THREE.Color('#8ff3e6') }, uInk: { value: 0 },
   uDensFrom: { value: 1 }, uDensTo: { value: 1 }, uSizeBoost: { value: 1 },
-  uResinColor: { value: new THREE.Color('#0d6e6a') }, uResinMix: { value: 0 }, uHide: { value: 0 }
+  uResinColor: { value: new THREE.Color('#0d6e6a') }, uResinMix: { value: 0 }, uHide: { value: 0 }, uScan: { value: -9 }, uStyle: { value: 0 }, uStyleScale: { value: 1 }, tDigits: { value: null }
 };
 const pointsMat = new THREE.ShaderMaterial({
   uniforms: renderUniforms, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
   vertexShader: `
-    uniform sampler2D tPos,tVel,tFrom,tColFrom,tColTo; uniform float uMorph,uTrans,uSize,uViewH,uFovK,uTime,uColorMode,uDensFrom,uDensTo,uSizeBoost,uResinMix; uniform vec3 uTint1,uTint2,uResinColor;
-    attribute vec2 ref; varying vec3 vColor; varying float vAlpha; varying float vDens;
+    uniform sampler2D tPos,tVel,tFrom,tColFrom,tColTo; uniform float uMorph,uTrans,uSize,uViewH,uFovK,uTime,uColorMode,uDensFrom,uDensTo,uSizeBoost,uResinMix,uScan,uStyleScale; uniform vec3 uTint1,uTint2,uResinColor;
+    attribute vec2 ref; varying vec3 vColor; varying float vAlpha; varying float vDens; varying float vR; varying vec2 vDir;
     ${STAGGER}
     void main(){
       vec3 p=texture2D(tPos,ref).xyz; vec4 fa=texture2D(tFrom,ref);
@@ -590,18 +599,30 @@ const pointsMat = new THREE.ShaderMaterial({
       float l=dot(c,vec3(.2126,.7152,.0722));
       vec3 rc=mix(uResinColor*.3,uResinColor*1.35,smoothstep(0.,.45,l))+vec3(max(0.,l-.72)*1.6);
       c=mix(c,rc,resin*uResinMix);
+      if(uScan>-8.) c+=vec3(.55,.95,1.)*exp(-pow((p.x-uScan)*7.,2.))*1.8;   // the laser line glows
       if(uColorMode>.5&&uColorMode<1.5) c=mix(uTint1,uTint2,smoothstep(0.,.8,l));
       else if(uColorMode>1.5) c=uTint2*(.35+l);
-      float speed=length(texture2D(tVel,ref).xyz);
+      vec3 vel3=texture2D(tVel,ref).xyz; float speed=length(vel3); vR=r; vDir=vel3.xy;
       c+=vec3(.6,.8,1.)*min(speed*.05,.6);
       vec4 mv=modelViewMatrix*vec4(p,1.); gl_Position=projectionMatrix*mv;
-      gl_PointSize=uSize*uSizeBoost*(.55+r*.9)*uViewH/(uFovK*-mv.z);
+      gl_PointSize=uSize*uSizeBoost*uStyleScale*(.55+r*.9)*uViewH/(uFovK*-mv.z);
       vColor=c; vAlpha=.7+.3*sin(uTime*2.+r*60.);
     }`,
   fragmentShader: `
-    varying vec3 vColor; varying float vAlpha; varying float vDens; uniform float uOpacity,uInk,uHide;
-    void main(){ float d=length(gl_PointCoord-.5); if(d>.5) discard;
-      float a=pow(1.-d*2.,1.6)*vAlpha*uOpacity*vDens; if(uInk>.5) a=smoothstep(.5,.35,d)*uOpacity;
+    varying vec3 vColor; varying float vAlpha; varying float vDens; varying float vR; varying vec2 vDir; uniform float uOpacity,uInk,uHide,uStyle,uTime; uniform sampler2D tDigits;
+    void main(){ vec2 q=gl_PointCoord-.5; float d=length(q); float sh;
+      if(uStyle<.5){ if(d>.5) discard; sh=uInk>.5?smoothstep(.5,.35,d):pow(1.-d*2.,1.6); }
+      else if(uStyle<1.5) sh=smoothstep(.5,.28,abs(q.x))*smoothstep(.07,.0,abs(q.y));                       // horizontal dash
+      else if(uStyle<2.5) sh=smoothstep(.07,.0,abs(q.x))*smoothstep(.5,.28,abs(q.y));                       // vertical dash
+      else if(uStyle<3.5){ vec2 u=length(vDir)>.02?normalize(vec2(vDir.x,-vDir.y)):vec2(1.,0.);               // streak along motion
+        float sp=clamp(length(vDir)*.25,.15,1.); sh=smoothstep(.5*sp,.1*sp,abs(dot(q,u)))*smoothstep(.07,.0,abs(dot(q,vec2(-u.y,u.x)))); }
+      else if(uStyle<4.5){ float idx=floor(fract(vR*7.31+floor(uTime*(1.5+vR*5.))*.137)*10.);                // matrix digits
+        sh=texture2D(tDigits,vec2((idx+q.x+.5)/10.,.5-q.y)).r; }
+      else if(uStyle<5.5) sh=min(1.,max(smoothstep(.05,0.,abs(q.x))*smoothstep(.5,0.,abs(q.y)),smoothstep(.05,0.,abs(q.y))*smoothstep(.5,0.,abs(q.x)))+smoothstep(.16,0.,d));   // star
+      else if(uStyle<6.5) sh=step(max(abs(q.x),abs(q.y)),.4);                                                // pixel
+      else sh=smoothstep(.06,0.,abs(d-.34));                                                                  // ring
+      if(sh<.01) discard;
+      float a=sh*vAlpha*uOpacity*vDens; if(uInk>.5) a=sh*uOpacity;
       a*=1.-uHide;
       gl_FragColor=vec4(vColor,a); }`
 });
@@ -613,6 +634,7 @@ function startTexture(mode) {
   for (let n = 0; n < N; n++) {
     const i = n * 4, r = Math.random();
     if (mode === 'still') { const d = shapes[toIdx].data.pos; a[i] = d[i]; a[i + 1] = d[i + 1]; a[i + 2] = d[i + 2]; }
+    else if (mode === 'rain') { const d = shapes[toIdx].data.pos; a[i] = d[i]; a[i + 1] = d[i + 1] + 2.6 + r * 9; a[i + 2] = d[i + 2]; }
     else if (mode === 'pour') { a[i] = randn() * 0.1; a[i + 1] = 2.6 + r * 16; a[i + 2] = randn() * 0.1; }
     else if (mode === 'floor') { a[i] = (Math.random() - .5) * 10; a[i + 1] = -3.2 - Math.random() * .3; a[i + 2] = (Math.random() - .5) * 6; }
     else { const z = Math.random() * 2 - 1, ph = Math.random() * Math.PI * 2, rr = 4 + r * 5, s = Math.sqrt(1 - z * z); a[i] = Math.cos(ph) * s * rr; a[i + 1] = z * rr; a[i + 2] = Math.sin(ph) * s * rr - 2; }
@@ -639,7 +661,7 @@ function buildSim(startMode = 'cloud') {
   sim = {
     uTime: { value: 0 }, uDelta: { value: 0.016 }, uMorph: { value: 1 }, uSpring: { value: .6 }, uDamping: { value: .92 }, uNoise: { value: .35 },
     uFlight: { value: 1 }, uScatter: { value: 0 }, uWave: { value: .6 }, uPointerRadius: { value: .5 }, uPointerStrength: { value: 0 }, uShock: { value: 0 },
-    uTrans: { value: 0 }, uWind: { value: 0 }, uGravity: { value: 0 }, uPour: { value: 0 }, uPourY: { value: 2.2 }, uPulse: { value: 0 }, uFlat: { value: 0 },
+    uTrans: { value: 0 }, uWind: { value: 0 }, uGravity: { value: 0 }, uPour: { value: 0 }, uPourY: { value: 2.2 }, uPulse: { value: 0 }, uFlat: { value: 0 }, uVortex: { value: 0 }, uAttract: { value: 0 }, uBlow: { value: 0 }, uScan: { value: -9 }, uRain: { value: 0 }, uBlowDir: { value: new THREE.Vector3(1, 0, 0) },
     uPointer: { value: new THREE.Vector3(99, 99, 99) }, uPointerVel: { value: new THREE.Vector3() }, uShockOrigin: { value: new THREE.Vector3(99, 99, 99) },
     tFrom: { value: texFrom }, tTo: { value: texTo }
   };
@@ -747,7 +769,7 @@ function shock(at) { if (reduced) return; sim.uShockOrigin.value.copy(at); sim.u
    Sequence / timeline (6) + camera moves (7)
    ============================================================ */
 const ACTS = { goto: 'Przemień w', scatter: 'Rozsyp', reform: 'Złóż od nowa', shock: 'Fala uderzeniowa', trans: 'Zmień przejście' };
-const REFORM = { cloud: 'z chmury', pour: 'wylewanie z góry', floor: 'z podłogi' };
+const REFORM = { cloud: 'z chmury', pour: 'wylewanie z góry', floor: 'z podłogi', rain: 'deszcz Matrix' };
 const TRANS = ['wir', 'fala od rogu', 'piasek', 'rozpuszczanie', 'odłamki'];
 const DEFAULT_STEPS = () => [
   { t: 0, act: 'reform', arg: 'cloud' }, { t: 4.2, act: 'goto', arg: 1 }, { t: 7.6, act: 'goto', arg: 0 }, { t: 10.6, act: 'scatter', arg: '' }

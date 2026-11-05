@@ -153,6 +153,11 @@ video.preview{width:100%;max-width:100%;border:1px solid var(--line);border-radi
 .keys-card dt{white-space:nowrap;font-size:12px;color:var(--mist)}
 .keys-card dd{margin:0;font-size:13px}
 kbd{font-family:var(--font-mono);font-size:11px;border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;padding:1px 6px;color:var(--foam);background:var(--abyss)}
+.scenarios{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.scenario{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;border-radius:8px;padding:8px 10px;background:var(--raise);min-width:0}
+.scenario b{font-weight:700;color:var(--foam);font-size:12px}
+.scenario span{font-weight:400;color:var(--mist);font-size:11px;line-height:1.35}
+.scenario.on{border-color:var(--glow);box-shadow:0 0 0 1px var(--glow)}
 @media (max-width:760px){
   .app.panel-hidden{grid-template-rows:100% 0}
   .app{grid-template-columns:minmax(0,1fr);grid-template-rows:52% 48%}
@@ -273,6 +278,12 @@ kbd{font-family:var(--font-mono);font-size:11px;border:1px solid var(--line);bor
 
     <div class="pane" data-pane="fx" hidden>
       <section>
+        <h2>Wygląd cząsteczek</h2>
+        <div class="row two"><label for="pStyle">Kształt</label><select id="pStyle"></select></div>
+        <div class="row"><label for="styleLen">Długość / skala</label><input id="styleLen" type="range" min="0.4" max="2.5" step="0.01" value="1"><output for="styleLen"></output></div>
+        <p class="note">Kreski, smugi, cyfry Matrix, gwiazdki, piksele albo pierścienie zamiast kropek. Gotowe połączenia znajdziesz w Sekwencja → Co ma się dziać?</p>
+      </section>
+      <section>
         <h2>Efekt główny</h2>
         <div class="row two"><label for="fxMode">Efekt</label>
           <select id="fxMode"><option value="particles">Cząsteczki</option><option value="relief">Relief 3D (symulator 2.5D)</option><option value="voxels">Klocki z fizyką</option></select></div>
@@ -389,6 +400,10 @@ kbd{font-family:var(--font-mono);font-size:11px;border:1px solid var(--line);bor
     </div>
 
     <div class="pane" data-pane="seq" hidden>
+      <section>
+        <h2>Co ma się dziać? <small>kliknij, by ustawić i odtworzyć</small></h2>
+        <div class="scenarios" id="scenarios"></div>
+      </section>
       <section>
         <h2>Oś czasu <small id="seqLen">14.2 s</small></h2>
         <div class="steps" id="steps"></div>
@@ -1111,7 +1126,8 @@ float stagKey(vec3 a, float r){
 float morphOf(vec3 a, float r){ float k=stagKey(a,r); return smoothstep(k*.55,k*.55+.45,uMorph); }
 `;
 const velShader = `
-uniform float uTime,uDelta,uMorph,uSpring,uDamping,uNoise,uFlight,uScatter,uWave,uPointerRadius,uPointerStrength,uShock,uTrans,uWind,uGravity,uPour,uPourY,uPulse,uFlat;
+uniform float uTime,uDelta,uMorph,uSpring,uDamping,uNoise,uFlight,uScatter,uWave,uPointerRadius,uPointerStrength,uShock,uTrans,uWind,uGravity,uPour,uPourY,uPulse,uFlat,uVortex,uAttract,uBlow,uScan,uRain;
+uniform vec3 uBlowDir;
 uniform vec3 uPointer,uPointerVel,uShockOrigin;
 uniform sampler2D tFrom,tTo;
 ${NOISE}
@@ -1127,8 +1143,15 @@ void main(){
   target.z+=sin(uTime*1.3+target.x*2.2+target.y*1.7)*uWave*.12*(1.-uFlat);
   target.y+=cos(uTime*.9+target.x*1.5)*uWave*.04*(1.-uFlat);
   target.z*=1.-uFlat;
-  float hold=1.-uScatter;
-  vec3 acc=(target-p)*uSpring*12.*hold;
+  float hold=(1.-uScatter)*(1.-uVortex*.8)*(1.-uAttract);
+  vec3 extra=vec3(0.);
+  if(uBlow>0.){                                              // blown away like sand, one side first
+    float k=clamp(dot(ta.xyz,uBlowDir)/3.6+.5,0.,1.); float rel=smoothstep(k*.8,k*.8+.2,uBlow);
+    hold*=1.-rel; extra+=(uBlowDir*5.+vec3(0.,1.6,0.)+curl(p*.9+uTime*.4)*3.)*rel; }
+  if(uScan>-8.) hold*=step(target.x,uScan);                  // laser scan: only what the line has passed is built
+  extra+=(vec3(-p.z,0.,p.x)*4.+vec3(-p.x,0.,-p.z)*1.2+vec3(0.,1.4,0.))*uVortex;   // tornado
+  extra+=(-p)*uAttract*22.;                                  // implode to the centre
+  vec3 acc=(target-p)*uSpring*12.*hold+extra;
   float curlAmt=uNoise*.8*(1.-uFlat)+uScatter*5.;
   if(uTrans<.5) curlAmt+=tr*uFlight*6.;
   else if(uTrans<1.5){ curlAmt+=tr*uFlight*2.; acc+=vec3(0.,0.,1.)*tr*uFlight*5.; }
@@ -1144,6 +1167,7 @@ void main(){
   acc+=d/(dist+1e-4)*f*uPointerStrength*28.+uPointerVel*f*35.;
   vec3 ds=p-uShockOrigin; float sd=length(ds);
   acc+=ds/(sd+1e-4)*uShock*exp(-sd*1.4)*55.;
+  if(uRain>.5 && p.y>target.y+.03) acc=vec3(0.,-7.,0.);
   if(uPour>.5 && p.y>uPourY) acc=vec3(0.,-12.,0.)+curl(p*.4+uTime*.2)*.6;   // (10) pour: free fall until the stream reaches the shape
   v+=acc*uDelta;
   v*=pow(uDamping,uDelta*60.);
@@ -1160,13 +1184,13 @@ const renderUniforms = {
   uMorph: { value: 1 }, uTrans: { value: 0 }, uSize: { value: 0.015 }, uViewH: { value: 800 }, uFovK: { value: 0.7279 }, uOpacity: { value: 0.45 }, uTime: { value: 0 },
   uColorMode: { value: 0 }, uTint1: { value: new THREE.Color('#1b4dff') }, uTint2: { value: new THREE.Color('#8ff3e6') }, uInk: { value: 0 },
   uDensFrom: { value: 1 }, uDensTo: { value: 1 }, uSizeBoost: { value: 1 },
-  uResinColor: { value: new THREE.Color('#0d6e6a') }, uResinMix: { value: 0 }, uHide: { value: 0 }
+  uResinColor: { value: new THREE.Color('#0d6e6a') }, uResinMix: { value: 0 }, uHide: { value: 0 }, uScan: { value: -9 }, uStyle: { value: 0 }, uStyleScale: { value: 1 }, tDigits: { value: null }
 };
 const pointsMat = new THREE.ShaderMaterial({
   uniforms: renderUniforms, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
   vertexShader: `
-    uniform sampler2D tPos,tVel,tFrom,tColFrom,tColTo; uniform float uMorph,uTrans,uSize,uViewH,uFovK,uTime,uColorMode,uDensFrom,uDensTo,uSizeBoost,uResinMix; uniform vec3 uTint1,uTint2,uResinColor;
-    attribute vec2 ref; varying vec3 vColor; varying float vAlpha; varying float vDens;
+    uniform sampler2D tPos,tVel,tFrom,tColFrom,tColTo; uniform float uMorph,uTrans,uSize,uViewH,uFovK,uTime,uColorMode,uDensFrom,uDensTo,uSizeBoost,uResinMix,uScan,uStyleScale; uniform vec3 uTint1,uTint2,uResinColor;
+    attribute vec2 ref; varying vec3 vColor; varying float vAlpha; varying float vDens; varying float vR; varying vec2 vDir;
     ${STAGGER}
     void main(){
       vec3 p=texture2D(tPos,ref).xyz; vec4 fa=texture2D(tFrom,ref);
@@ -1177,18 +1201,30 @@ const pointsMat = new THREE.ShaderMaterial({
       float l=dot(c,vec3(.2126,.7152,.0722));
       vec3 rc=mix(uResinColor*.3,uResinColor*1.35,smoothstep(0.,.45,l))+vec3(max(0.,l-.72)*1.6);
       c=mix(c,rc,resin*uResinMix);
+      if(uScan>-8.) c+=vec3(.55,.95,1.)*exp(-pow((p.x-uScan)*7.,2.))*1.8;   // the laser line glows
       if(uColorMode>.5&&uColorMode<1.5) c=mix(uTint1,uTint2,smoothstep(0.,.8,l));
       else if(uColorMode>1.5) c=uTint2*(.35+l);
-      float speed=length(texture2D(tVel,ref).xyz);
+      vec3 vel3=texture2D(tVel,ref).xyz; float speed=length(vel3); vR=r; vDir=vel3.xy;
       c+=vec3(.6,.8,1.)*min(speed*.05,.6);
       vec4 mv=modelViewMatrix*vec4(p,1.); gl_Position=projectionMatrix*mv;
-      gl_PointSize=uSize*uSizeBoost*(.55+r*.9)*uViewH/(uFovK*-mv.z);
+      gl_PointSize=uSize*uSizeBoost*uStyleScale*(.55+r*.9)*uViewH/(uFovK*-mv.z);
       vColor=c; vAlpha=.7+.3*sin(uTime*2.+r*60.);
     }`,
   fragmentShader: `
-    varying vec3 vColor; varying float vAlpha; varying float vDens; uniform float uOpacity,uInk,uHide;
-    void main(){ float d=length(gl_PointCoord-.5); if(d>.5) discard;
-      float a=pow(1.-d*2.,1.6)*vAlpha*uOpacity*vDens; if(uInk>.5) a=smoothstep(.5,.35,d)*uOpacity;
+    varying vec3 vColor; varying float vAlpha; varying float vDens; varying float vR; varying vec2 vDir; uniform float uOpacity,uInk,uHide,uStyle,uTime; uniform sampler2D tDigits;
+    void main(){ vec2 q=gl_PointCoord-.5; float d=length(q); float sh;
+      if(uStyle<.5){ if(d>.5) discard; sh=uInk>.5?smoothstep(.5,.35,d):pow(1.-d*2.,1.6); }
+      else if(uStyle<1.5) sh=smoothstep(.5,.28,abs(q.x))*smoothstep(.07,.0,abs(q.y));                       // horizontal dash
+      else if(uStyle<2.5) sh=smoothstep(.07,.0,abs(q.x))*smoothstep(.5,.28,abs(q.y));                       // vertical dash
+      else if(uStyle<3.5){ vec2 u=length(vDir)>.02?normalize(vec2(vDir.x,-vDir.y)):vec2(1.,0.);               // streak along motion
+        float sp=clamp(length(vDir)*.25,.15,1.); sh=smoothstep(.5*sp,.1*sp,abs(dot(q,u)))*smoothstep(.07,.0,abs(dot(q,vec2(-u.y,u.x)))); }
+      else if(uStyle<4.5){ float idx=floor(fract(vR*7.31+floor(uTime*(1.5+vR*5.))*.137)*10.);                // matrix digits
+        sh=texture2D(tDigits,vec2((idx+q.x+.5)/10.,.5-q.y)).r; }
+      else if(uStyle<5.5) sh=min(1.,max(smoothstep(.05,0.,abs(q.x))*smoothstep(.5,0.,abs(q.y)),smoothstep(.05,0.,abs(q.y))*smoothstep(.5,0.,abs(q.x)))+smoothstep(.16,0.,d));   // star
+      else if(uStyle<6.5) sh=step(max(abs(q.x),abs(q.y)),.4);                                                // pixel
+      else sh=smoothstep(.06,0.,abs(d-.34));                                                                  // ring
+      if(sh<.01) discard;
+      float a=sh*vAlpha*uOpacity*vDens; if(uInk>.5) a=sh*uOpacity;
       a*=1.-uHide;
       gl_FragColor=vec4(vColor,a); }`
 });
@@ -1200,6 +1236,7 @@ function startTexture(mode) {
   for (let n = 0; n < N; n++) {
     const i = n * 4, r = Math.random();
     if (mode === 'still') { const d = shapes[toIdx].data.pos; a[i] = d[i]; a[i + 1] = d[i + 1]; a[i + 2] = d[i + 2]; }
+    else if (mode === 'rain') { const d = shapes[toIdx].data.pos; a[i] = d[i]; a[i + 1] = d[i + 1] + 2.6 + r * 9; a[i + 2] = d[i + 2]; }
     else if (mode === 'pour') { a[i] = randn() * 0.1; a[i + 1] = 2.6 + r * 16; a[i + 2] = randn() * 0.1; }
     else if (mode === 'floor') { a[i] = (Math.random() - .5) * 10; a[i + 1] = -3.2 - Math.random() * .3; a[i + 2] = (Math.random() - .5) * 6; }
     else { const z = Math.random() * 2 - 1, ph = Math.random() * Math.PI * 2, rr = 4 + r * 5, s = Math.sqrt(1 - z * z); a[i] = Math.cos(ph) * s * rr; a[i + 1] = z * rr; a[i + 2] = Math.sin(ph) * s * rr - 2; }
@@ -1226,7 +1263,7 @@ function buildSim(startMode = 'cloud') {
   sim = {
     uTime: { value: 0 }, uDelta: { value: 0.016 }, uMorph: { value: 1 }, uSpring: { value: .6 }, uDamping: { value: .92 }, uNoise: { value: .35 },
     uFlight: { value: 1 }, uScatter: { value: 0 }, uWave: { value: .6 }, uPointerRadius: { value: .5 }, uPointerStrength: { value: 0 }, uShock: { value: 0 },
-    uTrans: { value: 0 }, uWind: { value: 0 }, uGravity: { value: 0 }, uPour: { value: 0 }, uPourY: { value: 2.2 }, uPulse: { value: 0 }, uFlat: { value: 0 },
+    uTrans: { value: 0 }, uWind: { value: 0 }, uGravity: { value: 0 }, uPour: { value: 0 }, uPourY: { value: 2.2 }, uPulse: { value: 0 }, uFlat: { value: 0 }, uVortex: { value: 0 }, uAttract: { value: 0 }, uBlow: { value: 0 }, uScan: { value: -9 }, uRain: { value: 0 }, uBlowDir: { value: new THREE.Vector3(1, 0, 0) },
     uPointer: { value: new THREE.Vector3(99, 99, 99) }, uPointerVel: { value: new THREE.Vector3() }, uShockOrigin: { value: new THREE.Vector3(99, 99, 99) },
     tFrom: { value: texFrom }, tTo: { value: texTo }
   };
@@ -1334,7 +1371,7 @@ function shock(at) { if (reduced) return; sim.uShockOrigin.value.copy(at); sim.u
    Sequence / timeline (6) + camera moves (7)
    ============================================================ */
 const ACTS = { goto: 'Przemień w', scatter: 'Rozsyp', reform: 'Złóż od nowa', shock: 'Fala uderzeniowa', trans: 'Zmień przejście' };
-const REFORM = { cloud: 'z chmury', pour: 'wylewanie z góry', floor: 'z podłogi' };
+const REFORM = { cloud: 'z chmury', pour: 'wylewanie z góry', floor: 'z podłogi', rain: 'deszcz Matrix' };
 const TRANS = ['wir', 'fala od rogu', 'piasek', 'rozpuszczanie', 'odłamki'];
 const DEFAULT_STEPS = () => [
   { t: 0, act: 'reform', arg: 'cloud' }, { t: 4.2, act: 'goto', arg: 1 }, { t: 7.6, act: 'goto', arg: 0 }, { t: 10.6, act: 'scatter', arg: '' }
@@ -3274,6 +3311,128 @@ hooks.post.push(dt => {                       // after OrbitControls: add this f
   par.applied.copy(np).sub(camera.position);
   camera.position.copy(np); camera.lookAt(par._t);
 });
+
+/* ============================================================
+   MOVES + SCENARIOS — "what should happen?"
+   New moves: tornado, implode & burst, blow away like sand, laser scan, fireworks.
+   A gallery of ready scenarios fills the timeline with one click.
+   ============================================================ */
+const mv = { vortex: 0, vortexT: 0, attract: 0, attractT: 0, blow: 0, blowDir: 1, blowT: 0, scan: -9, scanT: -1, fireT: 0 };
+function moveVortex() { mv.vortexT = 2.6; }
+function moveImplode() { mv.attractT = 1.1; }
+function moveBlow() { mv.blowT = 0.0001; mv.blowDir = Math.random() < .5 ? 1 : -1; }
+function moveScan() { reform('cloud'); mv.scanT = 0; }
+function moveFireworks() { anim.scatter = Math.max(anim.scatter, .55); mv.fireT = 2.4; }
+hooks.tick.push(dt => {
+  // tornado: ramps in, spins, lets go
+  if (mv.vortexT > 0) { mv.vortexT -= dt; mv.vortex = Math.min(1, mv.vortex + dt * 2); } else mv.vortex = Math.max(0, mv.vortex - dt * 1.2);
+  // implode, then burst
+  if (mv.attractT > 0) { mv.attractT -= dt; mv.attract = Math.min(1, mv.attract + dt * 2.5); if (mv.attractT <= 0) { mv.attract = 0; anim.scatter = 1; sim && (sim.uShockOrigin.value.set(0, 0, 0), sim.uShock.value = 1.2); } }
+  // blow away (0→1 over 2 s), hold, come back (1→0 over 2.2 s)
+  if (mv.blowT > 0) { mv.blowT += dt; const t = mv.blowT; mv.blow = t < 2 ? t / 2 : t < 3.2 ? 1 : Math.max(0, 1 - (t - 3.2) / 2.2); if (t > 5.4) { mv.blowT = 0; mv.blow = 0; } }
+  // laser scan left → right over 3 s
+  if (mv.scanT >= 0) { mv.scanT += dt; const half = SPAN / 2 + .25; mv.scan = -half + (mv.scanT / 3) * half * 2; if (mv.scanT > 3.4) { mv.scanT = -1; mv.scan = -9; } }
+  // fireworks: a short burst of gravity after the scatter
+  if (mv.fireT > 0) mv.fireT -= dt;
+  if (sim) {
+    sim.uVortex.value = reduced ? 0 : mv.vortex; sim.uAttract.value = mv.attract; sim.uBlow.value = mv.blow; sim.uScan.value = mv.scan;
+    sim.uBlowDir.value.set(mv.blowDir, 0, 0);
+    if (mv.fireT > 0) sim.uGravity.value += 4.5 * Math.min(1, mv.fireT);
+  }
+  renderUniforms.uScan.value = mv.scan;
+});
+hooks.seqStart.push(() => { Object.assign(mv, { vortex: 0, vortexT: 0, attract: 0, attractT: 0, blow: 0, blowT: 0, scan: -9, scanT: -1, fireT: 0 }); });
+
+/* timeline actions (Doradca AI sees these too) */
+Object.assign(ACTS, { vortex: 'Tornado', implode: 'Implozja i wybuch', blow: 'Rozwiej jak piasek', scan: 'Skan laserowy', fireworks: 'Fajerwerki' });
+hooks.step.push(s => {
+  if (s.act === 'vortex') { FX.mode === 'particles' ? moveVortex() : scatterPulse(); }
+  else if (s.act === 'implode') { FX.mode === 'particles' ? moveImplode() : scatterPulse(); }
+  else if (s.act === 'blow') { FX.mode === 'particles' ? moveBlow() : scatterPulse(); }
+  else if (s.act === 'scan') { FX.mode === 'particles' ? moveScan() : reform('cloud'); }
+  else if (s.act === 'fireworks') { FX.mode === 'particles' ? moveFireworks() : scatterPulse(); }
+});
+
+/* ---------- scenario gallery ---------- */
+const P0 = { t: 0, act: 'effect', arg: 'particles' };
+const SCENARIOS = [
+  { id: 'classic', name: 'Rozpad i złożenie', desc: 'Rój składa się z chmury, rozsypuje i wraca.', steps: () => [P0, { t: 0, act: 'reform', arg: 'cloud' }, { t: 5, act: 'scatter' }], tail: 4 },
+  { id: 'pour', name: 'Wylewanie jak żywica', desc: 'Strumień spływa z góry i rozlewa się w kształt.', steps: () => [P0, { t: 0, act: 'reform', arg: 'pour' }, { t: 8, act: 'sweep' }], tail: 3 },
+  { id: 'rise', name: 'Wzrost z podłogi', desc: 'Pył podnosi się z ziemi i buduje obiekt.', steps: () => [P0, { t: 0, act: 'reform', arg: 'floor' }, { t: 6.5, act: 'sweep' }], tail: 3, cam: 'rise' },
+  { id: 'tornado', name: 'Tornado', desc: 'Obiekt zaczyna wirować jak trąba powietrzna i wraca.', steps: () => [P0, { t: 0, act: 'reform', arg: 'cloud' }, { t: 3.5, act: 'vortex' }, { t: 8, act: 'sweep' }], tail: 3 },
+  { id: 'implode', name: 'Implozja i wybuch', desc: 'Wszystko zapada się do punktu, potem eksploduje.', steps: () => [P0, { t: 0, act: 'reform', arg: 'cloud' }, { t: 3.5, act: 'implode' }], tail: 5 },
+  { id: 'blow', name: 'Rozwianie jak piasek', desc: 'Produkt rozsypuje się w pył od jednej strony i wraca.', steps: () => [P0, { t: 0, act: 'reform', arg: 'cloud' }, { t: 3.5, act: 'blow' }], tail: 6 },
+  { id: 'scan', name: 'Skan laserowy', desc: 'Linia światła przesuwa się i buduje produkt.', steps: () => [P0, { t: 0.3, act: 'scan' }, { t: 5, act: 'sweep' }], tail: 3 },
+  { id: 'fireworks', name: 'Fajerwerki', desc: 'Rój wystrzeliwuje i opada, potem się składa.', steps: () => [P0, { t: 0, act: 'reform', arg: 'cloud' }, { t: 3.5, act: 'fireworks' }], tail: 5 },
+  { id: 'photo', name: 'Zdjęcie → rój → zdjęcie', desc: 'Prawdziwe zdjęcie rozpuszcza się w cząsteczki.', run: () => $('btnSeqPhoto').click() },
+  { id: 'glass', name: 'Rozbite szkło', desc: 'Zdjęcie pęka na odłamki 3D, które wracają.', steps: () => [{ t: 0, act: 'effect', arg: 'glass' }, { t: 2.5, act: 'scatter' }], tail: 6 },
+  { id: 'voxrain', name: 'Deszcz klocków', desc: 'Klocki spadają z góry i budują produkt.', steps: () => [{ t: 0, act: 'effect', arg: 'voxels' }, { t: 0.1, act: 'reform', arg: 'pour' }, { t: 7, act: 'scatter' }], tail: 5 },
+  { id: 'relief', name: 'Relief z połyskiem', desc: 'Bryła 3D z przelotem światła i najazdem kamery.', steps: () => [{ t: 0, act: 'effect', arg: 'relief' }, { t: 2, act: 'sweep' }, { t: 6, act: 'sweep' }], tail: 3, cam: 'dolly' },
+  { id: 'resin', name: 'Kolory żywicy', desc: 'Ten sam stół w kilku kolorach żywicy.', run: () => $('btnSeqResin').click() },
+  { id: 'liquid', name: 'Płynna żywica', desc: 'Relief, na który wylewa się płyn.', steps: () => [{ t: 0, act: 'effect', arg: 'relief' }, { t: 1.5, act: 'fluid' }, { t: 6, act: 'fluid' }], tail: 3, fluid: true },
+];
+$('scenarios').innerHTML = SCENARIOS.map(s => `<button type="button" class="scenario" data-id="${s.id}"><b>${s.name}</b><span>${s.desc}</span></button>`).join('');
+$('scenarios').addEventListener('click', e => {
+  const b = e.target.closest('.scenario'); if (!b) return;
+  const sc = SCENARIOS.find(x => x.id === b.dataset.id);
+  histBegin(`Scenariusz „${sc.name}” — zostawić?`);
+  if (sc.run) { sc.run(); playSeq(); return; }
+  if (sc.fluid && !$('fluidOn').checked) { $('fluidOn').checked = true; flClear(); }
+  if (sc.cam) $('camMove').value = sc.cam;
+  steps = sc.steps(); setRange('seqTail', sc.tail); renderSteps();
+  [...$('scenarios').children].forEach(x => x.classList.toggle('on', x === b));
+  playSeq();
+});
+
+/* ============================================================
+   PARTICLE LOOK — dots, dashes, motion streaks, Matrix digits, stars, pixels, rings
+   + Matrix rain and extra "rich" scenarios.
+   ============================================================ */
+const STYLES = [['0', 'Kropki (świetliki)'], ['1', 'Kreski poziome'], ['2', 'Kreski pionowe'], ['3', 'Smugi ruchu'], ['4', 'Cyfry Matrix'], ['5', 'Gwiazdki'], ['6', 'Piksele'], ['7', 'Pierścienie']];
+const STYLE_SCALE = { 0: 1, 1: 2.6, 2: 2.6, 3: 3.2, 4: 2.2, 5: 2.2, 6: 1.1, 7: 1.8 };
+$('pStyle').innerHTML = STYLES.map(([v, n]) => `<option value="${v}">${n}</option>`).join('');
+renderUniforms.tDigits.value = (() => {
+  const c = document.createElement('canvas'); c.width = 640; c.height = 64; const x = c.getContext('2d');
+  x.fillStyle = '#000'; x.fillRect(0, 0, 640, 64); x.fillStyle = '#fff'; x.font = '700 54px "IBM Plex Mono", ui-monospace, monospace'; x.textAlign = 'center'; x.textBaseline = 'middle';
+  for (let i = 0; i < 10; i++) x.fillText(String(i), i * 64 + 32, 35);
+  const t = new THREE.CanvasTexture(c); t.minFilter = THREE.LinearFilter; t.generateMipmaps = false; return t;
+})();
+function applyStyle() {
+  const v = +$('pStyle').value;
+  renderUniforms.uStyle.value = v; renderUniforms.uStyleScale.value = (STYLE_SCALE[v] || 1) * P.styleLen;
+  pointsMat.blending = ($('additive').checked && $('bg').value !== 'paper') ? THREE.AdditiveBlending : THREE.NormalBlending;
+}
+['pStyle', 'styleLen'].forEach(id => $(id).addEventListener('input', applyStyle));
+$('pStyle').addEventListener('change', applyStyle);
+hooks.projectApplied.push(applyStyle);
+
+/* Matrix rain: particles fall straight down their own column into place */
+const rain = { t: 0 };
+hooks.reform.push(kind => { rain.t = kind === 'rain' ? 9 : 0; });
+hooks.tick.push(dt => { if (rain.t > 0) rain.t -= dt; if (sim) sim.uRain.value = rain.t > 0 ? 1 : 0; });
+
+/* timeline: change the look mid-video */
+Object.assign(ACTS, { style: 'Wygląd cząsteczek' });
+hooks.args.style = () => STYLES;
+hooks.step.push(s => { if (s.act === 'style') { $('pStyle').value = s.arg || '0'; applyStyle(); } });
+
+/* rich scenarios — they join the "Co ma się dziać?" gallery */
+const RICH = [
+  { id: 'matrix', name: 'Deszcz Matrix', desc: 'Zielone cyfry spadają kolumnami i składają produkt.', look: { pStyle: '4', colorMode: '2', tint2: '#39ff6a', bg: 'black', additive: true }, steps: () => [P0, { t: 0, act: 'style', arg: '4' }, { t: 0.05, act: 'reform', arg: 'rain' }, { t: 8.5, act: 'style', arg: '0' }], tail: 3.5 },
+  { id: 'hlines', name: 'Linie skanera', desc: 'Poziome kreski i laser budują obraz linia po linii.', look: { pStyle: '1' }, steps: () => [P0, { t: 0, act: 'style', arg: '1' }, { t: 0.3, act: 'scan' }, { t: 5, act: 'blow' }], tail: 6 },
+  { id: 'vlines', name: 'Kurtyna z kresek', desc: 'Pionowe kreski opadają jak deszcz i układają kształt.', look: { pStyle: '2' }, steps: () => [P0, { t: 0, act: 'style', arg: '2' }, { t: 0.05, act: 'reform', arg: 'rain' }, { t: 8, act: 'scatter' }], tail: 4 },
+  { id: 'hyper', name: 'Hiperprzestrzeń', desc: 'Smugi światła wciągane do środka, potem wybuch.', look: { pStyle: '3' }, steps: () => [P0, { t: 0, act: 'style', arg: '3' }, { t: 0, act: 'reform', arg: 'cloud' }, { t: 3.2, act: 'implode' }, { t: 7, act: 'vortex' }], tail: 4, cam: 'vertigo' },
+  { id: 'stardust', name: 'Gwiezdny pył', desc: 'Migoczące gwiazdki wirują jak galaktyka.', look: { pStyle: '5', bg: 'night', additive: true }, steps: () => [P0, { t: 0, act: 'style', arg: '5' }, { t: 0, act: 'reform', arg: 'cloud' }, { t: 3.5, act: 'vortex' }, { t: 8, act: 'sweep' }], tail: 3, cam: 'orbit' },
+  { id: 'pixels', name: 'Piksele 8-bit', desc: 'Kwadratowe piksele w stylu retro, rozsypka i powrót.', look: { pStyle: '6' }, steps: () => [P0, { t: 0, act: 'style', arg: '6' }, { t: 0, act: 'reform', arg: 'floor' }, { t: 6, act: 'fireworks' }], tail: 5 },
+];
+SCENARIOS.push(...RICH);
+$('scenarios').insertAdjacentHTML('beforeend', RICH.map(s => `<button type="button" class="scenario" data-id="${s.id}"><b>${s.name}</b><span>${s.desc}</span></button>`).join(''));
+// apply the look of a rich scenario before the generic handler plays it
+$('scenarios').addEventListener('click', e => {
+  const b = e.target.closest('.scenario'); const sc = b && RICH.find(x => x.id === b.dataset.id); if (!sc) return;
+  for (const [k, v] of Object.entries(sc.look || {})) setCtl(k, v);
+  applyLook(); applyStyle();
+}, true);
 /* ============================================================
    Boot + realtime loop
    ============================================================ */
