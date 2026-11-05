@@ -2,3 +2,7 @@ src-tauri/target/
 src-tauri/gen/
 node_modules/
 tools/*.jpg
+tools/*.jpg
+tools/*.png
+tools/tutorial-*/
+tools/tframes*/

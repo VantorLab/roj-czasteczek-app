@@ -19,6 +19,11 @@ hooks.reform.push(kind => { if (kind !== 'still') FX.modes[FX.mode]?.reform?.(ki
 hooks.goto.push(k => FX.modes[FX.mode]?.shape?.(k));
 FX.modes.particles = {};
 
+function resinUniforms() { return { uResinColor: { value: new THREE.Color() }, uWoodHSV: { value: new THREE.Vector3() }, uResinMix: { value: 0 }, uEdge: { value: .26 } }; }
+function syncResin(u) {   // copy the live resin state (colour fades, mix, wood colour, edge) into a material
+  u.uResinColor.value.copy(renderUniforms.uResinColor.value); u.uResinMix.value = renderUniforms.uResinMix.value; u.uEdge.value = P.resinEdge;
+  const w = new THREE.Color($('woodColor').value).convertLinearToSRGB(), hsv = rgb2hsv(w.r, w.g, w.b); u.uWoodHSV.value.set(hsv[0], hsv[1], hsv[2]);
+}
 /* the current shape as a picture (+ depth) for picture-based effects */
 function shapeCanvas(i) {
   const d = shapes[i].data; if (d.photo) return d.photo;
@@ -47,7 +52,7 @@ function shapeDepth(i) {
    ============================================================ */
 const reliefMat = () => new THREE.ShaderMaterial({
   side: THREE.DoubleSide, transparent: true, extensions: { derivatives: true },
-  uniforms: { map: { value: null }, tDepth: { value: null }, uHeight: { value: .9 }, uTime: { value: 0 }, uWave: { value: .3 }, uRipple: { value: 0 }, uRippleT: { value: 0 }, uGrow: { value: 1 }, uOpacity: { value: 1 }, uShade: { value: .6 }, uLightDir: { value: new THREE.Vector3(.5, .7, .9) } },
+  uniforms: { map: { value: null }, tDepth: { value: null }, uHeight: { value: .9 }, uTime: { value: 0 }, uWave: { value: .3 }, uRipple: { value: 0 }, uRippleT: { value: 0 }, uGrow: { value: 1 }, uOpacity: { value: 1 }, uShade: { value: .6 }, uLightDir: { value: new THREE.Vector3(.5, .7, .9) }, ...resinUniforms() },
   vertexShader: `uniform sampler2D tDepth; uniform float uHeight,uTime,uWave,uRipple,uRippleT,uGrow; varying vec2 vUv; varying vec3 vPos;
     void main(){ vUv=uv; float d=texture2D(tDepth,uv).r; vec3 p=position;
       float z=(d-.5)*uHeight*uGrow;
@@ -55,7 +60,15 @@ const reliefMat = () => new THREE.ShaderMaterial({
       float r=length(p.xy); z+=sin(r*10.-uRippleT*9.)*exp(-pow(r-uRippleT*1.8,2.)*2.5)*uRipple*.4;
       p.z=z; vec4 wp=modelMatrix*vec4(p,1.); vPos=wp.xyz; gl_Position=projectionMatrix*viewMatrix*wp; }`,
   fragmentShader: `uniform sampler2D map; uniform vec3 uLightDir; uniform float uOpacity,uShade; varying vec2 vUv; varying vec3 vPos;
-    void main(){ vec4 c=texture2D(map,vUv); if(c.a<.4) discard;
+uniform vec3 uResinColor,uWoodHSV; uniform float uResinMix,uEdge;
+vec3 rgb2hsv(vec3 c){ vec4 K=vec4(0.,-1./3.,2./3.,-1.); vec4 p=mix(vec4(c.bg,K.wz),vec4(c.gb,K.xy),step(c.b,c.g)); vec4 q=mix(vec4(p.xyw,c.r),vec4(c.r,p.yzx),step(p.x,c.r)); float d=q.x-min(q.w,q.y); float e=1e-10; return vec3(abs(q.z+(q.w-q.y)/(6.*d+e)),d/(q.x+e),q.x); }
+vec3 resinize(vec3 lin){ if(uResinMix<.001) return lin;
+  vec3 h=rgb2hsv(pow(max(lin,0.),vec3(1./2.2))); float dh=abs(h.x-uWoodHSV.x); dh=min(dh,1.-dh)*2.;
+  float dd=sqrt(dh*dh*1.4+(h.y-uWoodHSV.y)*(h.y-uWoodHSV.y)*.35+(h.z-uWoodHSV.z)*(h.z-uWoodHSV.z)*1.1);
+  float glare=(h.y<.12&&h.z>.85)?1.:0.; float rw=(1.-glare)*smoothstep(uEdge,uEdge+.12,dd);
+  float l=dot(lin,vec3(.2126,.7152,.0722)); vec3 rc=mix(uResinColor*.3,uResinColor*1.35,smoothstep(0.,.45,l))+vec3(max(0.,l-.72)*1.6);
+  return mix(lin,rc,rw*uResinMix); }
+    void main(){ vec4 c=texture2D(map,vUv); if(c.a<.4) discard; c.rgb=resinize(c.rgb);
       vec3 n=normalize(cross(dFdx(vPos),dFdy(vPos))); vec3 L=normalize(uLightDir);
       float dif=abs(dot(n,L)); vec3 v=normalize(cameraPosition-vPos); vec3 h=normalize(L+v); float sp=pow(max(abs(dot(n,h)),0.),48.);
       vec3 col=c.rgb*(1.-uShade+uShade*(.3+.9*dif))+vec3(sp)*uShade*.45;
@@ -96,6 +109,7 @@ FX.modes.relief = {
       u.uHeight.value = P.reliefH * 1.4; u.uShade.value = P.reliefShade; u.uWave.value = reduced ? 0 : P.reliefWave;
       u.uTime.value = T; u.uRipple.value = relief.ripple; u.uRippleT.value = relief.rippleT;
       u.uLightDir.value.set(Math.sin(T * .25) * .6 + .3, .7, .9);
+      syncResin(u);
     }
     if (relief.old && relief.old.userData.fade <= 0) { reliefDispose(relief.old); relief.old = null; }
   }

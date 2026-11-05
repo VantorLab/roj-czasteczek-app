@@ -2,6 +2,9 @@
 
 Zdjęcie produktu, logo, napis albo model 3D → efektowne wideo reklamowe: cząsteczki GPU, relief 3D, klocki z fizyką, rozbite szkło, płyn, światło kinowe, retro. Doradca AI sam projektuje efekt i uczy się z ocen.
 
+## Instrukcja
+📖 [docs/INSTRUKCJA.md](docs/INSTRUKCJA.md) · 🎬 [film instruktażowy (3 min)](docs/instrukcja.mp4)
+
 ## Trzy wersje z jednego kodu
 
 | Wersja | Gdzie | Jak zainstalować |

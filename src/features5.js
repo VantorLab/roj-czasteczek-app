@@ -33,7 +33,7 @@ function glassBuild(i) {
   const tex = new THREE.CanvasTexture(src); tex.colorSpace = THREE.SRGBColorSpace;
   const mat = new THREE.ShaderMaterial({
     side: THREE.DoubleSide, transparent: true,
-    uniforms: { map: { value: tex }, uT: { value: 0 }, uCrack: { value: 0 }, uImpact: { value: new THREE.Vector3(0, 0, 0) }, uSpread: { value: Math.max(sx, sy) } },
+    uniforms: { map: { value: tex }, uT: { value: 0 }, uCrack: { value: 0 }, uImpact: { value: new THREE.Vector3(0, 0, 0) }, uSpread: { value: Math.max(sx, sy) }, ...resinUniforms() },
     vertexShader: `uniform float uT,uSpread; uniform vec3 uImpact; attribute vec3 aCenter,aBary; attribute vec4 aRand; varying vec2 vUv; varying vec3 vBary,vN; varying float vT;
       mat3 rot(vec3 a,float g){ a=normalize(a+1e-4); float s=sin(g),c=cos(g),o=1.-c;
         return mat3(o*a.x*a.x+c,o*a.x*a.y+a.z*s,o*a.z*a.x-a.y*s, o*a.x*a.y-a.z*s,o*a.y*a.y+c,o*a.y*a.z+a.x*s, o*a.z*a.x+a.y*s,o*a.y*a.z-a.x*s,o*a.z*a.z+c); }
@@ -44,7 +44,15 @@ function glassBuild(i) {
         vUv=uv; vBary=aBary; vN=R*vec3(0.,0.,1.); vT=t;
         gl_Position=projectionMatrix*modelViewMatrix*vec4(p,1.); }`,
     fragmentShader: `uniform sampler2D map; uniform float uCrack; varying vec2 vUv; varying vec3 vBary,vN; varying float vT;
-      void main(){ vec4 c=texture2D(map,vUv); if(c.a<.3) discard;
+uniform vec3 uResinColor,uWoodHSV; uniform float uResinMix,uEdge;
+vec3 rgb2hsv(vec3 c){ vec4 K=vec4(0.,-1./3.,2./3.,-1.); vec4 p=mix(vec4(c.bg,K.wz),vec4(c.gb,K.xy),step(c.b,c.g)); vec4 q=mix(vec4(p.xyw,c.r),vec4(c.r,p.yzx),step(p.x,c.r)); float d=q.x-min(q.w,q.y); float e=1e-10; return vec3(abs(q.z+(q.w-q.y)/(6.*d+e)),d/(q.x+e),q.x); }
+vec3 resinize(vec3 lin){ if(uResinMix<.001) return lin;
+  vec3 h=rgb2hsv(pow(max(lin,0.),vec3(1./2.2))); float dh=abs(h.x-uWoodHSV.x); dh=min(dh,1.-dh)*2.;
+  float dd=sqrt(dh*dh*1.4+(h.y-uWoodHSV.y)*(h.y-uWoodHSV.y)*.35+(h.z-uWoodHSV.z)*(h.z-uWoodHSV.z)*1.1);
+  float glare=(h.y<.12&&h.z>.85)?1.:0.; float rw=(1.-glare)*smoothstep(uEdge,uEdge+.12,dd);
+  float l=dot(lin,vec3(.2126,.7152,.0722)); vec3 rc=mix(uResinColor*.3,uResinColor*1.35,smoothstep(0.,.45,l))+vec3(max(0.,l-.72)*1.6);
+  return mix(lin,rc,rw*uResinMix); }
+      void main(){ vec4 c=texture2D(map,vUv); if(c.a<.3) discard; c.rgb=resinize(c.rgb);
         float edge=1.-smoothstep(0.,.035,min(vBary.x,min(vBary.y,vBary.z)));
         float sh=.55+.45*abs(dot(normalize(vN),normalize(vec3(.4,.6,1.))));
         float glint=pow(abs(dot(normalize(vN),normalize(vec3(-.3,.5,1.)))),24.)*vT;
@@ -70,7 +78,7 @@ FX.modes.glass = {
     if (glass.hold > 0) { glass.hold -= dt; if (glass.hold <= 0) glass.target = 0; }
     const since = T - glass.start, crackPhase = glass.target === 1 && since < 0.35;
     if (!crackPhase) glass.t += Math.sign(glass.target - glass.t) * Math.min(Math.abs(glass.target - glass.t), dt / (glass.target ? 1.8 : 1.4));
-    const u = glass.mesh.material.uniforms; u.uT.value = glass.t; u.uCrack.value = glass.target === 1 ? Math.min(1, since * 4) : Math.max(0, u.uCrack.value - dt * 2);
+    const u = glass.mesh.material.uniforms; syncResin(u); u.uT.value = glass.t; u.uCrack.value = glass.target === 1 ? Math.min(1, since * 4) : Math.max(0, u.uCrack.value - dt * 2);
   }
 };
 // clicking the glass breaks it where you click
