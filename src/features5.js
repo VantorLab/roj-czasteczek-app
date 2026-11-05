@@ -123,6 +123,13 @@ const retroPass = new ShaderPass({
         float sp=.006*uAmt+.02*g*uAmt;
         col=vec3(texture2D(tDiffuse,uv+vec2(sp,0.)).r,texture2D(tDiffuse,uv).g,texture2D(tDiffuse,uv-vec2(sp,0.)).b);
         col*=.88+.12*sin(px.y*3.14159*.5); if(g>.5&&h(vec2(band,tt+2.))>.7) col=1.-col;
+      } else if(uMode>5.5){ // hologram: cyan projection, scanlines, flicker, sweeping light band, jitter
+        float band=floor(vUv.y*90.); float jit=(h(vec2(floor(uTime*14.),band))-.5)*.01*step(.9,h(vec2(floor(uTime*4.),floor(band*.2))))*uAmt*2.;
+        vec3 c=texture2D(tDiffuse,vUv+vec2(jit,0.)).rgb; float l=lum(c);
+        vec3 holo=mix(vec3(.02,.25,.5),vec3(.6,1.,1.),smoothstep(0.,.8,l))*(.3+l*1.5);
+        float scan=.72+.28*sin(px.y*1.7-uTime*24.); float flick=.9+.1*sin(uTime*47.)*sin(uTime*13.);
+        float sweep=1.-smoothstep(0.,.02,abs(fract(vUv.y+uTime*.17)-.5));
+        col=holo*scan*flick+vec3(.35,1.,1.)*sweep*.35*step(.03,l)+vec3(texture2D(tDiffuse,vUv+vec2(.005,0.)).r,0.,0.)*.12;
       } else { // melt / pixel-sort look: bright pixels smear downward
         float thr=.55-uAmt*.3; vec3 best=col; float bl=lum(col);
         for(int i=1;i<28;i++){ vec3 s=texture2D(tDiffuse,vUv+vec2(0.,float(i)*cs/uRes.y)).rgb; float l=lum(s); if(l>thr&&l>bl){ best=s; bl=l; } }

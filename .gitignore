@@ -6,3 +6,5 @@ tools/*.jpg
 tools/*.png
 tools/tutorial-*/
 tools/tframes*/
+tools/*.mp4
+tools/*.log

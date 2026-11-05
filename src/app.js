@@ -150,7 +150,7 @@ function sampleData(d, w, h, N, opt) {
 
   // (2) detail map: Sobel gradient of luminance → more particles on edges and texture
   let E = null;
-  if (opt.detail > 0) {
+  if (opt.detail > 0 || opt.contour) {
     E = new Float32Array(M); let mx = 1e-6;
     for (let y = 1; y < h - 1; y++) for (let x = 1; x < w - 1; x++) {
       const i = y * w + x;
@@ -168,7 +168,8 @@ function sampleData(d, w, h, N, opt) {
     if (opt.mode === 'dark') wgt *= smooth(opt.th, opt.th + 0.12, L[i]);
     else if (opt.mode === 'light') wgt *= smooth(opt.th, opt.th + 0.12, 1 - L[i]);
     cover += wgt;
-    if (E) wgt *= 1 + opt.detail * 5 * E[i];
+    if (opt.contour && E) wgt = A[i] * smooth(0.12, 0.35, E[i]);
+    else if (E) wgt *= 1 + opt.detail * 5 * E[i];
     tot += wgt; cdf[i] = tot;
   }
   const uniform = tot <= 1e-6; if (uniform) { tot = M; cover = M; }
@@ -261,6 +262,36 @@ function proc(type, N) {
     } else if (type === 'galaxy') {
       const arm = n % 3, r = Math.pow(Math.random(), 1.6) * 2.2 + 0.05, a = r * 2.4 + arm * Math.PI * 2 / 3 + randn() * 0.22 / (r + 0.3);
       put(n, Math.cos(a) * r, randn() * 0.06 * (2.3 - r), Math.sin(a) * r, ...mix3(gold, cyan, Math.min(1, r / 2)));
+    } else if (type === 'heart') {
+      const t = Math.random() * Math.PI * 2, k = Math.sqrt(Math.random());
+      const hx = 16 * Math.pow(Math.sin(t), 3), hy = 13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t);
+      const rr = k * (0.92 + 0.08 * Math.random()), z = randn() * 0.28 * Math.sqrt(Math.max(0, 1 - k * k));
+      put(n, hx * 0.1 * rr, hy * 0.1 * rr + 0.25, z, ...mix3([255, 60, 110], [255, 190, 210], k));
+    } else if (type === 'saturn') {
+      if (u < 0.58) { const z = Math.random() * 2 - 1, a = Math.random() * Math.PI * 2, s2 = Math.sqrt(1 - z * z), r = 0.95; const band = 0.5 + 0.5 * Math.sin(z * 18);
+        put(n, Math.cos(a) * s2 * r, z * r, Math.sin(a) * s2 * r, ...mix3([200, 120, 50], [255, 220, 150], band)); }
+      else { const a = Math.random() * Math.PI * 2, r = 1.3 + Math.pow(Math.random(), 0.7) * 0.75, x = Math.cos(a) * r, z = Math.sin(a) * r, tl = 0.42;
+        put(n, x, z * Math.sin(tl) + randn() * 0.01, z * Math.cos(tl), ...mix3([235, 215, 180], [150, 130, 110], (r - 1.3) / 0.75)); }
+    } else if (type === 'dna') {
+      const t = (Math.random() * 2 - 1) * 1.7, a = t * 3.2;
+      if (u < 0.8) { const side = n % 2, aa = a + side * Math.PI, rr = 0.55 + randn() * 0.03;
+        put(n, Math.cos(aa) * rr, t, Math.sin(aa) * rr, ...(side ? [90, 220, 255] : [255, 90, 200])); }
+      else { const ts = Math.round(t * 5) / 5, aa = ts * 3.2, w = Math.random() * 2 - 1;
+        put(n, Math.cos(aa) * 0.55 * w, ts + randn() * 0.01, Math.sin(aa) * 0.55 * w, 235, 245, 255); }
+    } else if (type === 'knot') {
+      const ph = Math.random() * Math.PI * 2, r0 = Math.cos(3 * ph) + 2, tube = 0.09;
+      const c = new THREE.Color().setHSL(ph / (Math.PI * 2), 0.8, 0.6);
+      put(n, r0 * Math.cos(2 * ph) * 0.55 + randn() * tube, r0 * Math.sin(2 * ph) * 0.55 + randn() * tube, -Math.sin(3 * ph) * 0.55 + randn() * tube, c.r * 255, c.g * 255, c.b * 255);
+    } else if (type === 'butterfly') {
+      const th = Math.random() * Math.PI * 12, r = Math.exp(Math.sin(th)) - 2 * Math.cos(4 * th) + Math.pow(Math.sin((2 * th - Math.PI) / 24), 5), k = Math.sqrt(Math.random());
+      const x = Math.sin(th) * r * k * 0.42, y = Math.cos(th) * r * k * 0.42;
+      put(n, x, y + 0.3, Math.abs(x) * 0.35 + randn() * 0.03, ...mix3([60, 120, 255], [255, 150, 60], k));
+    } else if (type === 'vase') {
+      const y = Math.random() * 3.2 - 1.6, a = Math.random() * Math.PI * 2, rad = 0.45 + 0.38 * Math.sin(y * 1.9 + 0.6) + 0.12 * (y < -1.4 ? 1 : 0);
+      put(n, Math.cos(a) * rad, y, Math.sin(a) * rad, ...mix3([20, 110, 120], [170, 235, 225], (y + 1.6) / 3.2));
+    } else if (type === 'wave') {
+      const x = Math.random() * 3.6 - 1.8, z = Math.random() * 3.6 - 1.8, h = Math.sin(x * 2.2) * Math.cos(z * 1.8) * 0.32 + Math.sin(x * 5 + z * 3) * 0.06, tl = -0.95;
+      put(n, x, h * Math.cos(tl) - z * Math.sin(tl), h * Math.sin(tl) + z * Math.cos(tl), ...mix3([30, 60, 200], [120, 255, 230], (h + 0.4) / 0.8));
     } else { /* jelly */
       if (u < 0.58) {
         const th = Math.acos(1 - Math.random() * 0.75), ph = Math.random() * Math.PI * 2, rr = 1.25 + randn() * 0.02, wav = 1 + 0.05 * Math.sin(ph * 8);
@@ -387,11 +418,14 @@ async function aiCutout(s) {
 /* ============================================================
    Shapes (up to 6)
    ============================================================ */
-const TYPES = { image: 'Zdjęcie / logo', text: 'Napis', model: 'Model 3D', jelly: 'Meduza', sphere: 'Kula', ring: 'Pierścień', galaxy: 'Galaktyka' };
+const TYPES = { image: 'Zdjęcie / logo', text: 'Napis', model: 'Model 3D', jelly: 'Meduza', heart: 'Serce', saturn: 'Saturn', dna: 'DNA', knot: 'Węzeł', butterfly: 'Motyl', vase: 'Wazon', wave: 'Fala', sphere: 'Kula', ring: 'Pierścień', galaxy: 'Galaktyka' };
 const MAX_SHAPES = 6;
 const shapes = [
   { type: 'image', img: flowerCanvas(), name: 'przykład', text: 'AI BIZNES' },
   { type: 'jelly', name: 'meduza', text: 'AI BIZNES' },
+  { type: 'heart', name: 'serce', text: 'AI BIZNES' },
+  { type: 'saturn', name: 'saturn', text: 'AI BIZNES' },
+  { type: 'dna', name: 'dna', text: 'AI BIZNES' },
 ];
 let SIZE = 256;
 
@@ -399,14 +433,14 @@ function computeShape(s) {
   const N = SIZE * SIZE;
   if (s.type === 'image' && s.img) {
     const { d, w, h } = shapePixels(s);
-    const data = sampleData(d, w, h, N, { mode: $('bgMode').value, th: P.bgTh, depth: P.depth, detail: P.detail, deglare: P.deglare, depthArr: depthArrFor(s, w, h), resin: resinClassifier() });
+    const data = sampleData(d, w, h, N, { mode: $('bgMode').value, th: P.bgTh, depth: P.depth, detail: P.detail, deglare: P.deglare, depthArr: depthArrFor(s, w, h), resin: resinClassifier(), contour: $('contourOnly').checked });
     data.photo = photoCanvasFor(s);
     return data;
   }
   if (s.type === 'text') {
     const c = textCanvas(s.text || 'AI'); const [w, h] = sizeFor(c);
     work.width = w; work.height = h; wctx.drawImage(c, 0, 0, w, h);
-    return sampleData(wctx.getImageData(0, 0, w, h).data, w, h, N, { mode: 'dark', th: 0.08, depth: P.depth * 0.4, detail: 0, deglare: 0 });
+    return sampleData(wctx.getImageData(0, 0, w, h).data, w, h, N, { mode: 'dark', th: 0.08, depth: P.depth * 0.4, detail: 0, deglare: 0, contour: $('contourOnly').checked });
   }
   if (s.type === 'model' && s.model) return sampleModel(s.model, N);
   return proc(s.type === 'image' || s.type === 'model' ? 'sphere' : s.type, N);
@@ -524,7 +558,7 @@ float stagKey(vec3 a, float r){
 float morphOf(vec3 a, float r){ float k=stagKey(a,r); return smoothstep(k*.55,k*.55+.45,uMorph); }
 `;
 const velShader = `
-uniform float uTime,uDelta,uMorph,uSpring,uDamping,uNoise,uFlight,uScatter,uWave,uPointerRadius,uPointerStrength,uShock,uTrans,uWind,uGravity,uPour,uPourY,uPulse,uFlat,uVortex,uAttract,uBlow,uScan,uRain;
+uniform float uTime,uDelta,uMorph,uSpring,uDamping,uNoise,uFlight,uScatter,uWave,uPointerRadius,uPointerStrength,uShock,uTrans,uWind,uGravity,uPour,uPourY,uPulse,uFlat,uVortex,uAttract,uBlow,uScan,uRain,uHoverMode,uShockMode;
 uniform vec3 uBlowDir;
 uniform vec3 uPointer,uPointerVel,uShockOrigin;
 uniform sampler2D tFrom,tTo;
@@ -560,11 +594,19 @@ void main(){
   acc+=normalize(p+1e-4)*uScatter*7.*(.35+r);
   acc+=vec3(uWind,-uGravity,0.)*(1.-uFlat);
   acc+=normalize(p+1e-4)*uPulse*4.;
-  vec3 d=p-uPointer; float dist=length(d);
+  vec3 d=p-uPointer; float dist=length(d); vec3 dn=d/(dist+1e-4);
   float f=1.-smoothstep(0.,uPointerRadius,dist); f*=f;
-  acc+=d/(dist+1e-4)*f*uPointerStrength*28.+uPointerVel*f*35.;
-  vec3 ds=p-uShockOrigin; float sd=length(ds);
-  acc+=ds/(sd+1e-4)*uShock*exp(-sd*1.4)*55.;
+  if(uHoverMode<.5) acc+=dn*f*uPointerStrength*28.+uPointerVel*f*35.;                       // push away
+  else if(uHoverMode<1.5) acc+=-dn*f*uPointerStrength*24.+uPointerVel*f*20.;                // magnet
+  else if(uHoverMode<2.5) acc+=vec3(-dn.y,dn.x,0.)*f*uPointerStrength*34.;                   // whirl
+  else if(uHoverMode<3.5) acc+=vec3(dn.xy*.35,1.)*f*uPointerStrength*26.;                    // magnifier: bulge to camera
+  else if(uHoverMode<4.5) acc+=dn*sin(dist*20.-uTime*12.)*f*uPointerStrength*26.;           // ripple rings
+  vec3 ds=p-uShockOrigin; float sd=length(ds); vec3 sn=ds/(sd+1e-4);
+  if(uShockMode<.5) acc+=sn*uShock*exp(-sd*1.4)*55.;                                        // shockwave
+  else if(uShockMode<1.5) acc+=(sn+vec3(0.,.4,.6))*uShock*exp(-sd*.7)*95.;                   // explosion
+  else if(uShockMode<2.5) acc+=(uShock>0.?-sn*exp(-sd*.5)*36.:sn*exp(-sd*.9)*-70.)*uShock;   // black hole, then spit out
+  else if(uShockMode<3.5){ float R=(1.-uShock)*3.2; acc+=sn*exp(-pow((sd-R)*5.,2.))*uShock*60.; }  // expanding ring
+  else acc+=(sn*.7+vec3(0.,1.,0.))*uShock*exp(-sd*.9)*70.;                                   // firework burst
   if(uRain>.5 && p.y>target.y+.03) acc=vec3(0.,-7.,0.);
   if(uPour>.5 && p.y>uPourY) acc=vec3(0.,-12.,0.)+curl(p*.4+uTime*.2)*.6;   // (10) pour: free fall until the stream reaches the shape
   v+=acc*uDelta;
@@ -582,12 +624,12 @@ const renderUniforms = {
   uMorph: { value: 1 }, uTrans: { value: 0 }, uSize: { value: 0.015 }, uViewH: { value: 800 }, uFovK: { value: 0.7279 }, uOpacity: { value: 0.45 }, uTime: { value: 0 },
   uColorMode: { value: 0 }, uTint1: { value: new THREE.Color('#1b4dff') }, uTint2: { value: new THREE.Color('#8ff3e6') }, uInk: { value: 0 },
   uDensFrom: { value: 1 }, uDensTo: { value: 1 }, uSizeBoost: { value: 1 },
-  uResinColor: { value: new THREE.Color('#0d6e6a') }, uResinMix: { value: 0 }, uHide: { value: 0 }, uScan: { value: -9 }, uStyle: { value: 0 }, uStyleScale: { value: 1 }, tDigits: { value: null }
+  uResinColor: { value: new THREE.Color('#0d6e6a') }, uResinMix: { value: 0 }, uHide: { value: 0 }, uScan: { value: -9 }, uStyle: { value: 0 }, uStyleScale: { value: 1 }, tDigits: { value: null }, tSprite: { value: null }, uPointerR: { value: new THREE.Vector3(99, 99, 99) }, uHoverGlow: { value: 0 }, uHoverR: { value: .5 }
 };
 const pointsMat = new THREE.ShaderMaterial({
   uniforms: renderUniforms, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
   vertexShader: `
-    uniform sampler2D tPos,tVel,tFrom,tColFrom,tColTo; uniform float uMorph,uTrans,uSize,uViewH,uFovK,uTime,uColorMode,uDensFrom,uDensTo,uSizeBoost,uResinMix,uScan,uStyleScale; uniform vec3 uTint1,uTint2,uResinColor;
+    uniform sampler2D tPos,tVel,tFrom,tColFrom,tColTo; uniform float uMorph,uTrans,uSize,uViewH,uFovK,uTime,uColorMode,uDensFrom,uDensTo,uSizeBoost,uResinMix,uScan,uStyleScale; uniform vec3 uPointerR; uniform float uHoverGlow,uHoverR; uniform vec3 uTint1,uTint2,uResinColor;
     attribute vec2 ref; varying vec3 vColor; varying float vAlpha; varying float vDens; varying float vR; varying vec2 vDir;
     ${STAGGER}
     void main(){
@@ -600,6 +642,7 @@ const pointsMat = new THREE.ShaderMaterial({
       vec3 rc=mix(uResinColor*.3,uResinColor*1.35,smoothstep(0.,.45,l))+vec3(max(0.,l-.72)*1.6);
       c=mix(c,rc,resin*uResinMix);
       if(uScan>-8.) c+=vec3(.55,.95,1.)*exp(-pow((p.x-uScan)*7.,2.))*1.8;   // the laser line glows
+      c+=uHoverGlow*vec3(.7,.95,1.)*exp(-pow(length(p.xy-uPointerR.xy)/uHoverR*1.6,2.))*1.4;   // light under the cursor
       if(uColorMode>.5&&uColorMode<1.5) c=mix(uTint1,uTint2,smoothstep(0.,.8,l));
       else if(uColorMode>1.5) c=uTint2*(.35+l);
       vec3 vel3=texture2D(tVel,ref).xyz; float speed=length(vel3); vR=r; vDir=vel3.xy;
@@ -609,7 +652,7 @@ const pointsMat = new THREE.ShaderMaterial({
       vColor=c; vAlpha=.7+.3*sin(uTime*2.+r*60.);
     }`,
   fragmentShader: `
-    varying vec3 vColor; varying float vAlpha; varying float vDens; varying float vR; varying vec2 vDir; uniform float uOpacity,uInk,uHide,uStyle,uTime; uniform sampler2D tDigits;
+    varying vec3 vColor; varying float vAlpha; varying float vDens; varying float vR; varying vec2 vDir; uniform float uOpacity,uInk,uHide,uStyle,uTime; uniform sampler2D tDigits,tSprite;
     void main(){ vec2 q=gl_PointCoord-.5; float d=length(q); float sh;
       if(uStyle<.5){ if(d>.5) discard; sh=uInk>.5?smoothstep(.5,.35,d):pow(1.-d*2.,1.6); }
       else if(uStyle<1.5) sh=smoothstep(.5,.28,abs(q.x))*smoothstep(.07,.0,abs(q.y));                       // horizontal dash
@@ -620,7 +663,8 @@ const pointsMat = new THREE.ShaderMaterial({
         sh=texture2D(tDigits,vec2((idx+q.x+.5)/10.,.5-q.y)).r; }
       else if(uStyle<5.5) sh=min(1.,max(smoothstep(.05,0.,abs(q.x))*smoothstep(.5,0.,abs(q.y)),smoothstep(.05,0.,abs(q.y))*smoothstep(.5,0.,abs(q.x)))+smoothstep(.16,0.,d));   // star
       else if(uStyle<6.5) sh=step(max(abs(q.x),abs(q.y)),.4);                                                // pixel
-      else sh=smoothstep(.06,0.,abs(d-.34));                                                                  // ring
+      else if(uStyle<7.5) sh=smoothstep(.06,0.,abs(d-.34));                                                  // ring
+      else { vec4 sp=texture2D(tSprite,vec2(q.x+.5,.5-q.y)); sh=sp.a*max(sp.r,max(sp.g,sp.b)); }           // your own sign / logo                                                                  // ring
       if(sh<.01) discard;
       float a=sh*vAlpha*uOpacity*vDens; if(uInk>.5) a=sh*uOpacity;
       a*=1.-uHide;
@@ -661,7 +705,7 @@ function buildSim(startMode = 'cloud') {
   sim = {
     uTime: { value: 0 }, uDelta: { value: 0.016 }, uMorph: { value: 1 }, uSpring: { value: .6 }, uDamping: { value: .92 }, uNoise: { value: .35 },
     uFlight: { value: 1 }, uScatter: { value: 0 }, uWave: { value: .6 }, uPointerRadius: { value: .5 }, uPointerStrength: { value: 0 }, uShock: { value: 0 },
-    uTrans: { value: 0 }, uWind: { value: 0 }, uGravity: { value: 0 }, uPour: { value: 0 }, uPourY: { value: 2.2 }, uPulse: { value: 0 }, uFlat: { value: 0 }, uVortex: { value: 0 }, uAttract: { value: 0 }, uBlow: { value: 0 }, uScan: { value: -9 }, uRain: { value: 0 }, uBlowDir: { value: new THREE.Vector3(1, 0, 0) },
+    uTrans: { value: 0 }, uWind: { value: 0 }, uGravity: { value: 0 }, uPour: { value: 0 }, uPourY: { value: 2.2 }, uPulse: { value: 0 }, uFlat: { value: 0 }, uVortex: { value: 0 }, uAttract: { value: 0 }, uBlow: { value: 0 }, uScan: { value: -9 }, uRain: { value: 0 }, uHoverMode: { value: 0 }, uShockMode: { value: 0 }, uBlowDir: { value: new THREE.Vector3(1, 0, 0) },
     uPointer: { value: new THREE.Vector3(99, 99, 99) }, uPointerVel: { value: new THREE.Vector3() }, uShockOrigin: { value: new THREE.Vector3(99, 99, 99) },
     tFrom: { value: texFrom }, tTo: { value: texTo }
   };

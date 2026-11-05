@@ -11,6 +11,7 @@
     </dl>
     <div class="hint" id="hint"><kbd>M</kbd> poprzedni kształt · <kbd>1</kbd>–<kbd>6</kbd> kształt · <kbd>Spacja</kbd> rozsyp<br>klik = fala uderzeniowa · przeciągnij = obrót · kółko = zoom</div>
     <div class="rec-badge" id="recBadge" hidden><i></i><span id="recTime">REC 0.0 s</span></div>
+    <div class="demo-note" id="demoNote" hidden>Pokaz przykładów · kliknij gdziekolwiek, aby zacząć</div>
     <div class="drop" id="drop" hidden>Upuść zdjęcie lub model GLB, aby dodać kształt</div>
     <div class="safe" id="safe" hidden><i class="sz-top">Strefa nagłówka</i><i class="sz-bottom">Opis i przyciski aplikacji</i><i class="sz-right">Reakcje</i></div>
     <video id="handVideo" class="hand-video" playsinline muted hidden></video>
@@ -90,6 +91,7 @@
           <select id="depthMode"><option value="lum">Z jasności (szybko)</option><option value="ai">AI · Depth Anything</option></select></div>
         <div class="row"><label for="depth">Siła głębi</label><input id="depth" type="range" min="0" max="2" step="0.01" value="0.6"><output for="depth"></output></div>
         <div class="row"><label for="detail">Detal</label><input id="detail" type="range" min="0" max="1" step="0.01" value="0.5"><output for="detail"></output></div>
+        <label class="check"><input type="checkbox" id="contourOnly"> Tylko kontur (neon): cząsteczki tylko na krawędziach</label>
         <div class="row"><label for="deglare">Gaś odblaski</label><input id="deglare" type="range" min="0" max="1" step="0.01" value="0"><output for="deglare"></output></div>
         <p class="note"><span class="chip ai">AI</span> Głębia AI i automatyczne wycinanie tła pobierają model przy pierwszym użyciu (27–115 MB). Działają w pliku HTML otwartym w Chrome lub Edge; podgląd w Claude blokuje pobieranie modeli.</p>
       </section>
@@ -109,6 +111,7 @@
       <section>
         <h2>Wygląd cząsteczek</h2>
         <div class="row two"><label for="pStyle">Kształt</label><select id="pStyle"></select></div>
+        <div class="row two"><label for="spriteChar">Własny znak</label><div class="pair"><input id="spriteChar" type="text" value="★" maxlength="3" aria-label="Znak cząsteczki"><span class="file-btn"><button type="button" tabindex="-1" style="width:100%">Wgraj logo</button><input id="spriteFile" type="file" accept="image/*" aria-label="Wgraj logo jako cząsteczkę"></span></div></div>
         <div class="row"><label for="styleLen">Długość / skala</label><input id="styleLen" type="range" min="0.4" max="2.5" step="0.01" value="1"><output for="styleLen"></output></div>
         <p class="note">Kreski, smugi, cyfry Matrix, gwiazdki, piksele albo pierścienie zamiast kropek. Gotowe połączenia znajdziesz w Sekwencja → Co ma się dziać?</p>
       </section>
@@ -153,7 +156,7 @@
       </section>
       <section>
         <h2>Retro i druk</h2>
-        <div class="row two"><label for="retroMode">Styl</label><select id="retroMode"><option value="0">Wyłączony</option><option value="1">ASCII (znaki)</option><option value="2">Druk rastrowy (halftone)</option><option value="3">Dither (8-bit)</option><option value="4">Glitch / VHS</option><option value="5">Topnienie (pixel-sort)</option></select></div>
+        <div class="row two"><label for="retroMode">Styl</label><select id="retroMode"><option value="0">Wyłączony</option><option value="1">ASCII (znaki)</option><option value="2">Druk rastrowy (halftone)</option><option value="3">Dither (8-bit)</option><option value="4">Glitch / VHS</option><option value="5">Topnienie (pixel-sort)</option><option value="6">Hologram</option></select></div>
         <div class="row"><label for="retroCell">Wielkość komórki</label><input id="retroCell" type="range" min="4" max="28" step="1" value="10"><output for="retroCell"></output></div>
         <div class="row"><label for="retroAmt">Intensywność</label><input id="retroAmt" type="range" min="0" max="1" step="0.01" value="0.5"><output for="retroAmt"></output></div>
         <label class="check"><input type="checkbox" id="retroMono"> Dwa kolory (tusz i papier)</label>
@@ -188,6 +191,9 @@
         <div class="row"><label for="wave">Oddech</label><input id="wave" type="range" min="0" max="2" step="0.01" value="0.6"><output for="wave"></output></div>
         <div class="row"><label for="wind">Wiatr</label><input id="wind" type="range" min="-3" max="3" step="0.01" value="0"><output for="wind"></output></div>
         <div class="row"><label for="gravity">Grawitacja</label><input id="gravity" type="range" min="0" max="3" step="0.01" value="0"><output for="gravity"></output></div>
+        <div class="row two"><label for="hoverMode">Najechanie</label><select id="hoverMode"><option value="0">Odpychanie</option><option value="1">Magnes (przyciąga)</option><option value="2">Wir</option><option value="3">Lupa (wypukłość)</option><option value="4">Fale</option><option value="5">Tylko podświetlenie</option><option value="6">Nic</option></select></div>
+        <div class="row two"><label for="clickMode">Kliknięcie</label><select id="clickMode"><option value="0">Fala uderzeniowa</option><option value="1">Eksplozja</option><option value="2">Czarna dziura</option><option value="3">Pierścień</option><option value="4">Fajerwerk</option><option value="5">Następny kształt</option><option value="6">Zmień kolory</option><option value="7">Nic</option></select></div>
+        <label class="check"><input type="checkbox" id="hoverGlow" checked> Podświetlenie pod kursorem</label>
         <div class="row"><label for="pStrength">Siła kursora</label><input id="pStrength" type="range" min="0" max="3" step="0.01" value="1"><output for="pStrength"></output></div>
         <div class="row"><label for="pRadius">Zasięg kursora</label><input id="pRadius" type="range" min="0.1" max="1.5" step="0.01" value="0.5"><output for="pRadius"></output></div>
         <label class="check"><input type="checkbox" id="autoRot"> Powolny obrót kamery</label>

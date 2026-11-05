@@ -158,6 +158,7 @@ kbd{font-family:var(--font-mono);font-size:11px;border:1px solid var(--line);bor
 .scenario b{font-weight:700;color:var(--foam);font-size:12px}
 .scenario span{font-weight:400;color:var(--mist);font-size:11px;line-height:1.35}
 .scenario.on{border-color:var(--glow);box-shadow:0 0 0 1px var(--glow)}
+.demo-note{position:absolute;left:50%;top:max(18px,env(safe-area-inset-top,0px));transform:translateX(-50%);z-index:3;font-family:var(--font-mono);font-size:11px;letter-spacing:.06em;color:var(--glow);background:color-mix(in srgb,var(--abyss) 70%,transparent);border:1px solid var(--line);border-radius:999px;padding:5px 12px;pointer-events:none;white-space:nowrap}
 @media (max-width:760px){
   .app.panel-hidden{grid-template-rows:100% 0}
   .app{grid-template-columns:minmax(0,1fr);grid-template-rows:52% 48%}
@@ -182,6 +183,7 @@ kbd{font-family:var(--font-mono);font-size:11px;border:1px solid var(--line);bor
     </dl>
     <div class="hint" id="hint"><kbd>M</kbd> poprzedni kształt · <kbd>1</kbd>–<kbd>6</kbd> kształt · <kbd>Spacja</kbd> rozsyp<br>klik = fala uderzeniowa · przeciągnij = obrót · kółko = zoom</div>
     <div class="rec-badge" id="recBadge" hidden><i></i><span id="recTime">REC 0.0 s</span></div>
+    <div class="demo-note" id="demoNote" hidden>Pokaz przykładów · kliknij gdziekolwiek, aby zacząć</div>
     <div class="drop" id="drop" hidden>Upuść zdjęcie lub model GLB, aby dodać kształt</div>
     <div class="safe" id="safe" hidden><i class="sz-top">Strefa nagłówka</i><i class="sz-bottom">Opis i przyciski aplikacji</i><i class="sz-right">Reakcje</i></div>
     <video id="handVideo" class="hand-video" playsinline muted hidden></video>
@@ -261,6 +263,7 @@ kbd{font-family:var(--font-mono);font-size:11px;border:1px solid var(--line);bor
           <select id="depthMode"><option value="lum">Z jasności (szybko)</option><option value="ai">AI · Depth Anything</option></select></div>
         <div class="row"><label for="depth">Siła głębi</label><input id="depth" type="range" min="0" max="2" step="0.01" value="0.6"><output for="depth"></output></div>
         <div class="row"><label for="detail">Detal</label><input id="detail" type="range" min="0" max="1" step="0.01" value="0.5"><output for="detail"></output></div>
+        <label class="check"><input type="checkbox" id="contourOnly"> Tylko kontur (neon): cząsteczki tylko na krawędziach</label>
         <div class="row"><label for="deglare">Gaś odblaski</label><input id="deglare" type="range" min="0" max="1" step="0.01" value="0"><output for="deglare"></output></div>
         <p class="note"><span class="chip ai">AI</span> Głębia AI i automatyczne wycinanie tła pobierają model przy pierwszym użyciu (27–115 MB). Działają w pliku HTML otwartym w Chrome lub Edge; podgląd w Claude blokuje pobieranie modeli.</p>
       </section>
@@ -280,6 +283,7 @@ kbd{font-family:var(--font-mono);font-size:11px;border:1px solid var(--line);bor
       <section>
         <h2>Wygląd cząsteczek</h2>
         <div class="row two"><label for="pStyle">Kształt</label><select id="pStyle"></select></div>
+        <div class="row two"><label for="spriteChar">Własny znak</label><div class="pair"><input id="spriteChar" type="text" value="★" maxlength="3" aria-label="Znak cząsteczki"><span class="file-btn"><button type="button" tabindex="-1" style="width:100%">Wgraj logo</button><input id="spriteFile" type="file" accept="image/*" aria-label="Wgraj logo jako cząsteczkę"></span></div></div>
         <div class="row"><label for="styleLen">Długość / skala</label><input id="styleLen" type="range" min="0.4" max="2.5" step="0.01" value="1"><output for="styleLen"></output></div>
         <p class="note">Kreski, smugi, cyfry Matrix, gwiazdki, piksele albo pierścienie zamiast kropek. Gotowe połączenia znajdziesz w Sekwencja → Co ma się dziać?</p>
       </section>
@@ -324,7 +328,7 @@ kbd{font-family:var(--font-mono);font-size:11px;border:1px solid var(--line);bor
       </section>
       <section>
         <h2>Retro i druk</h2>
-        <div class="row two"><label for="retroMode">Styl</label><select id="retroMode"><option value="0">Wyłączony</option><option value="1">ASCII (znaki)</option><option value="2">Druk rastrowy (halftone)</option><option value="3">Dither (8-bit)</option><option value="4">Glitch / VHS</option><option value="5">Topnienie (pixel-sort)</option></select></div>
+        <div class="row two"><label for="retroMode">Styl</label><select id="retroMode"><option value="0">Wyłączony</option><option value="1">ASCII (znaki)</option><option value="2">Druk rastrowy (halftone)</option><option value="3">Dither (8-bit)</option><option value="4">Glitch / VHS</option><option value="5">Topnienie (pixel-sort)</option><option value="6">Hologram</option></select></div>
         <div class="row"><label for="retroCell">Wielkość komórki</label><input id="retroCell" type="range" min="4" max="28" step="1" value="10"><output for="retroCell"></output></div>
         <div class="row"><label for="retroAmt">Intensywność</label><input id="retroAmt" type="range" min="0" max="1" step="0.01" value="0.5"><output for="retroAmt"></output></div>
         <label class="check"><input type="checkbox" id="retroMono"> Dwa kolory (tusz i papier)</label>
@@ -359,6 +363,9 @@ kbd{font-family:var(--font-mono);font-size:11px;border:1px solid var(--line);bor
         <div class="row"><label for="wave">Oddech</label><input id="wave" type="range" min="0" max="2" step="0.01" value="0.6"><output for="wave"></output></div>
         <div class="row"><label for="wind">Wiatr</label><input id="wind" type="range" min="-3" max="3" step="0.01" value="0"><output for="wind"></output></div>
         <div class="row"><label for="gravity">Grawitacja</label><input id="gravity" type="range" min="0" max="3" step="0.01" value="0"><output for="gravity"></output></div>
+        <div class="row two"><label for="hoverMode">Najechanie</label><select id="hoverMode"><option value="0">Odpychanie</option><option value="1">Magnes (przyciąga)</option><option value="2">Wir</option><option value="3">Lupa (wypukłość)</option><option value="4">Fale</option><option value="5">Tylko podświetlenie</option><option value="6">Nic</option></select></div>
+        <div class="row two"><label for="clickMode">Kliknięcie</label><select id="clickMode"><option value="0">Fala uderzeniowa</option><option value="1">Eksplozja</option><option value="2">Czarna dziura</option><option value="3">Pierścień</option><option value="4">Fajerwerk</option><option value="5">Następny kształt</option><option value="6">Zmień kolory</option><option value="7">Nic</option></select></div>
+        <label class="check"><input type="checkbox" id="hoverGlow" checked> Podświetlenie pod kursorem</label>
         <div class="row"><label for="pStrength">Siła kursora</label><input id="pStrength" type="range" min="0" max="3" step="0.01" value="1"><output for="pStrength"></output></div>
         <div class="row"><label for="pRadius">Zasięg kursora</label><input id="pRadius" type="range" min="0.1" max="1.5" step="0.01" value="0.5"><output for="pRadius"></output></div>
         <label class="check"><input type="checkbox" id="autoRot"> Powolny obrót kamery</label>
@@ -752,7 +759,7 @@ function sampleData(d, w, h, N, opt) {
 
   // (2) detail map: Sobel gradient of luminance → more particles on edges and texture
   let E = null;
-  if (opt.detail > 0) {
+  if (opt.detail > 0 || opt.contour) {
     E = new Float32Array(M); let mx = 1e-6;
     for (let y = 1; y < h - 1; y++) for (let x = 1; x < w - 1; x++) {
       const i = y * w + x;
@@ -770,7 +777,8 @@ function sampleData(d, w, h, N, opt) {
     if (opt.mode === 'dark') wgt *= smooth(opt.th, opt.th + 0.12, L[i]);
     else if (opt.mode === 'light') wgt *= smooth(opt.th, opt.th + 0.12, 1 - L[i]);
     cover += wgt;
-    if (E) wgt *= 1 + opt.detail * 5 * E[i];
+    if (opt.contour && E) wgt = A[i] * smooth(0.12, 0.35, E[i]);
+    else if (E) wgt *= 1 + opt.detail * 5 * E[i];
     tot += wgt; cdf[i] = tot;
   }
   const uniform = tot <= 1e-6; if (uniform) { tot = M; cover = M; }
@@ -863,6 +871,36 @@ function proc(type, N) {
     } else if (type === 'galaxy') {
       const arm = n % 3, r = Math.pow(Math.random(), 1.6) * 2.2 + 0.05, a = r * 2.4 + arm * Math.PI * 2 / 3 + randn() * 0.22 / (r + 0.3);
       put(n, Math.cos(a) * r, randn() * 0.06 * (2.3 - r), Math.sin(a) * r, ...mix3(gold, cyan, Math.min(1, r / 2)));
+    } else if (type === 'heart') {
+      const t = Math.random() * Math.PI * 2, k = Math.sqrt(Math.random());
+      const hx = 16 * Math.pow(Math.sin(t), 3), hy = 13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t);
+      const rr = k * (0.92 + 0.08 * Math.random()), z = randn() * 0.28 * Math.sqrt(Math.max(0, 1 - k * k));
+      put(n, hx * 0.1 * rr, hy * 0.1 * rr + 0.25, z, ...mix3([255, 60, 110], [255, 190, 210], k));
+    } else if (type === 'saturn') {
+      if (u < 0.58) { const z = Math.random() * 2 - 1, a = Math.random() * Math.PI * 2, s2 = Math.sqrt(1 - z * z), r = 0.95; const band = 0.5 + 0.5 * Math.sin(z * 18);
+        put(n, Math.cos(a) * s2 * r, z * r, Math.sin(a) * s2 * r, ...mix3([200, 120, 50], [255, 220, 150], band)); }
+      else { const a = Math.random() * Math.PI * 2, r = 1.3 + Math.pow(Math.random(), 0.7) * 0.75, x = Math.cos(a) * r, z = Math.sin(a) * r, tl = 0.42;
+        put(n, x, z * Math.sin(tl) + randn() * 0.01, z * Math.cos(tl), ...mix3([235, 215, 180], [150, 130, 110], (r - 1.3) / 0.75)); }
+    } else if (type === 'dna') {
+      const t = (Math.random() * 2 - 1) * 1.7, a = t * 3.2;
+      if (u < 0.8) { const side = n % 2, aa = a + side * Math.PI, rr = 0.55 + randn() * 0.03;
+        put(n, Math.cos(aa) * rr, t, Math.sin(aa) * rr, ...(side ? [90, 220, 255] : [255, 90, 200])); }
+      else { const ts = Math.round(t * 5) / 5, aa = ts * 3.2, w = Math.random() * 2 - 1;
+        put(n, Math.cos(aa) * 0.55 * w, ts + randn() * 0.01, Math.sin(aa) * 0.55 * w, 235, 245, 255); }
+    } else if (type === 'knot') {
+      const ph = Math.random() * Math.PI * 2, r0 = Math.cos(3 * ph) + 2, tube = 0.09;
+      const c = new THREE.Color().setHSL(ph / (Math.PI * 2), 0.8, 0.6);
+      put(n, r0 * Math.cos(2 * ph) * 0.55 + randn() * tube, r0 * Math.sin(2 * ph) * 0.55 + randn() * tube, -Math.sin(3 * ph) * 0.55 + randn() * tube, c.r * 255, c.g * 255, c.b * 255);
+    } else if (type === 'butterfly') {
+      const th = Math.random() * Math.PI * 12, r = Math.exp(Math.sin(th)) - 2 * Math.cos(4 * th) + Math.pow(Math.sin((2 * th - Math.PI) / 24), 5), k = Math.sqrt(Math.random());
+      const x = Math.sin(th) * r * k * 0.42, y = Math.cos(th) * r * k * 0.42;
+      put(n, x, y + 0.3, Math.abs(x) * 0.35 + randn() * 0.03, ...mix3([60, 120, 255], [255, 150, 60], k));
+    } else if (type === 'vase') {
+      const y = Math.random() * 3.2 - 1.6, a = Math.random() * Math.PI * 2, rad = 0.45 + 0.38 * Math.sin(y * 1.9 + 0.6) + 0.12 * (y < -1.4 ? 1 : 0);
+      put(n, Math.cos(a) * rad, y, Math.sin(a) * rad, ...mix3([20, 110, 120], [170, 235, 225], (y + 1.6) / 3.2));
+    } else if (type === 'wave') {
+      const x = Math.random() * 3.6 - 1.8, z = Math.random() * 3.6 - 1.8, h = Math.sin(x * 2.2) * Math.cos(z * 1.8) * 0.32 + Math.sin(x * 5 + z * 3) * 0.06, tl = -0.95;
+      put(n, x, h * Math.cos(tl) - z * Math.sin(tl), h * Math.sin(tl) + z * Math.cos(tl), ...mix3([30, 60, 200], [120, 255, 230], (h + 0.4) / 0.8));
     } else { /* jelly */
       if (u < 0.58) {
         const th = Math.acos(1 - Math.random() * 0.75), ph = Math.random() * Math.PI * 2, rr = 1.25 + randn() * 0.02, wav = 1 + 0.05 * Math.sin(ph * 8);
@@ -989,11 +1027,14 @@ async function aiCutout(s) {
 /* ============================================================
    Shapes (up to 6)
    ============================================================ */
-const TYPES = { image: 'Zdjęcie / logo', text: 'Napis', model: 'Model 3D', jelly: 'Meduza', sphere: 'Kula', ring: 'Pierścień', galaxy: 'Galaktyka' };
+const TYPES = { image: 'Zdjęcie / logo', text: 'Napis', model: 'Model 3D', jelly: 'Meduza', heart: 'Serce', saturn: 'Saturn', dna: 'DNA', knot: 'Węzeł', butterfly: 'Motyl', vase: 'Wazon', wave: 'Fala', sphere: 'Kula', ring: 'Pierścień', galaxy: 'Galaktyka' };
 const MAX_SHAPES = 6;
 const shapes = [
   { type: 'image', img: flowerCanvas(), name: 'przykład', text: 'AI BIZNES' },
   { type: 'jelly', name: 'meduza', text: 'AI BIZNES' },
+  { type: 'heart', name: 'serce', text: 'AI BIZNES' },
+  { type: 'saturn', name: 'saturn', text: 'AI BIZNES' },
+  { type: 'dna', name: 'dna', text: 'AI BIZNES' },
 ];
 let SIZE = 256;
 
@@ -1001,14 +1042,14 @@ function computeShape(s) {
   const N = SIZE * SIZE;
   if (s.type === 'image' && s.img) {
     const { d, w, h } = shapePixels(s);
-    const data = sampleData(d, w, h, N, { mode: $('bgMode').value, th: P.bgTh, depth: P.depth, detail: P.detail, deglare: P.deglare, depthArr: depthArrFor(s, w, h), resin: resinClassifier() });
+    const data = sampleData(d, w, h, N, { mode: $('bgMode').value, th: P.bgTh, depth: P.depth, detail: P.detail, deglare: P.deglare, depthArr: depthArrFor(s, w, h), resin: resinClassifier(), contour: $('contourOnly').checked });
     data.photo = photoCanvasFor(s);
     return data;
   }
   if (s.type === 'text') {
     const c = textCanvas(s.text || 'AI'); const [w, h] = sizeFor(c);
     work.width = w; work.height = h; wctx.drawImage(c, 0, 0, w, h);
-    return sampleData(wctx.getImageData(0, 0, w, h).data, w, h, N, { mode: 'dark', th: 0.08, depth: P.depth * 0.4, detail: 0, deglare: 0 });
+    return sampleData(wctx.getImageData(0, 0, w, h).data, w, h, N, { mode: 'dark', th: 0.08, depth: P.depth * 0.4, detail: 0, deglare: 0, contour: $('contourOnly').checked });
   }
   if (s.type === 'model' && s.model) return sampleModel(s.model, N);
   return proc(s.type === 'image' || s.type === 'model' ? 'sphere' : s.type, N);
@@ -1126,7 +1167,7 @@ float stagKey(vec3 a, float r){
 float morphOf(vec3 a, float r){ float k=stagKey(a,r); return smoothstep(k*.55,k*.55+.45,uMorph); }
 `;
 const velShader = `
-uniform float uTime,uDelta,uMorph,uSpring,uDamping,uNoise,uFlight,uScatter,uWave,uPointerRadius,uPointerStrength,uShock,uTrans,uWind,uGravity,uPour,uPourY,uPulse,uFlat,uVortex,uAttract,uBlow,uScan,uRain;
+uniform float uTime,uDelta,uMorph,uSpring,uDamping,uNoise,uFlight,uScatter,uWave,uPointerRadius,uPointerStrength,uShock,uTrans,uWind,uGravity,uPour,uPourY,uPulse,uFlat,uVortex,uAttract,uBlow,uScan,uRain,uHoverMode,uShockMode;
 uniform vec3 uBlowDir;
 uniform vec3 uPointer,uPointerVel,uShockOrigin;
 uniform sampler2D tFrom,tTo;
@@ -1162,11 +1203,19 @@ void main(){
   acc+=normalize(p+1e-4)*uScatter*7.*(.35+r);
   acc+=vec3(uWind,-uGravity,0.)*(1.-uFlat);
   acc+=normalize(p+1e-4)*uPulse*4.;
-  vec3 d=p-uPointer; float dist=length(d);
+  vec3 d=p-uPointer; float dist=length(d); vec3 dn=d/(dist+1e-4);
   float f=1.-smoothstep(0.,uPointerRadius,dist); f*=f;
-  acc+=d/(dist+1e-4)*f*uPointerStrength*28.+uPointerVel*f*35.;
-  vec3 ds=p-uShockOrigin; float sd=length(ds);
-  acc+=ds/(sd+1e-4)*uShock*exp(-sd*1.4)*55.;
+  if(uHoverMode<.5) acc+=dn*f*uPointerStrength*28.+uPointerVel*f*35.;                       // push away
+  else if(uHoverMode<1.5) acc+=-dn*f*uPointerStrength*24.+uPointerVel*f*20.;                // magnet
+  else if(uHoverMode<2.5) acc+=vec3(-dn.y,dn.x,0.)*f*uPointerStrength*34.;                   // whirl
+  else if(uHoverMode<3.5) acc+=vec3(dn.xy*.35,1.)*f*uPointerStrength*26.;                    // magnifier: bulge to camera
+  else if(uHoverMode<4.5) acc+=dn*sin(dist*20.-uTime*12.)*f*uPointerStrength*26.;           // ripple rings
+  vec3 ds=p-uShockOrigin; float sd=length(ds); vec3 sn=ds/(sd+1e-4);
+  if(uShockMode<.5) acc+=sn*uShock*exp(-sd*1.4)*55.;                                        // shockwave
+  else if(uShockMode<1.5) acc+=(sn+vec3(0.,.4,.6))*uShock*exp(-sd*.7)*95.;                   // explosion
+  else if(uShockMode<2.5) acc+=(uShock>0.?-sn*exp(-sd*.5)*36.:sn*exp(-sd*.9)*-70.)*uShock;   // black hole, then spit out
+  else if(uShockMode<3.5){ float R=(1.-uShock)*3.2; acc+=sn*exp(-pow((sd-R)*5.,2.))*uShock*60.; }  // expanding ring
+  else acc+=(sn*.7+vec3(0.,1.,0.))*uShock*exp(-sd*.9)*70.;                                   // firework burst
   if(uRain>.5 && p.y>target.y+.03) acc=vec3(0.,-7.,0.);
   if(uPour>.5 && p.y>uPourY) acc=vec3(0.,-12.,0.)+curl(p*.4+uTime*.2)*.6;   // (10) pour: free fall until the stream reaches the shape
   v+=acc*uDelta;
@@ -1184,12 +1233,12 @@ const renderUniforms = {
   uMorph: { value: 1 }, uTrans: { value: 0 }, uSize: { value: 0.015 }, uViewH: { value: 800 }, uFovK: { value: 0.7279 }, uOpacity: { value: 0.45 }, uTime: { value: 0 },
   uColorMode: { value: 0 }, uTint1: { value: new THREE.Color('#1b4dff') }, uTint2: { value: new THREE.Color('#8ff3e6') }, uInk: { value: 0 },
   uDensFrom: { value: 1 }, uDensTo: { value: 1 }, uSizeBoost: { value: 1 },
-  uResinColor: { value: new THREE.Color('#0d6e6a') }, uResinMix: { value: 0 }, uHide: { value: 0 }, uScan: { value: -9 }, uStyle: { value: 0 }, uStyleScale: { value: 1 }, tDigits: { value: null }
+  uResinColor: { value: new THREE.Color('#0d6e6a') }, uResinMix: { value: 0 }, uHide: { value: 0 }, uScan: { value: -9 }, uStyle: { value: 0 }, uStyleScale: { value: 1 }, tDigits: { value: null }, tSprite: { value: null }, uPointerR: { value: new THREE.Vector3(99, 99, 99) }, uHoverGlow: { value: 0 }, uHoverR: { value: .5 }
 };
 const pointsMat = new THREE.ShaderMaterial({
   uniforms: renderUniforms, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
   vertexShader: `
-    uniform sampler2D tPos,tVel,tFrom,tColFrom,tColTo; uniform float uMorph,uTrans,uSize,uViewH,uFovK,uTime,uColorMode,uDensFrom,uDensTo,uSizeBoost,uResinMix,uScan,uStyleScale; uniform vec3 uTint1,uTint2,uResinColor;
+    uniform sampler2D tPos,tVel,tFrom,tColFrom,tColTo; uniform float uMorph,uTrans,uSize,uViewH,uFovK,uTime,uColorMode,uDensFrom,uDensTo,uSizeBoost,uResinMix,uScan,uStyleScale; uniform vec3 uPointerR; uniform float uHoverGlow,uHoverR; uniform vec3 uTint1,uTint2,uResinColor;
     attribute vec2 ref; varying vec3 vColor; varying float vAlpha; varying float vDens; varying float vR; varying vec2 vDir;
     ${STAGGER}
     void main(){
@@ -1202,6 +1251,7 @@ const pointsMat = new THREE.ShaderMaterial({
       vec3 rc=mix(uResinColor*.3,uResinColor*1.35,smoothstep(0.,.45,l))+vec3(max(0.,l-.72)*1.6);
       c=mix(c,rc,resin*uResinMix);
       if(uScan>-8.) c+=vec3(.55,.95,1.)*exp(-pow((p.x-uScan)*7.,2.))*1.8;   // the laser line glows
+      c+=uHoverGlow*vec3(.7,.95,1.)*exp(-pow(length(p.xy-uPointerR.xy)/uHoverR*1.6,2.))*1.4;   // light under the cursor
       if(uColorMode>.5&&uColorMode<1.5) c=mix(uTint1,uTint2,smoothstep(0.,.8,l));
       else if(uColorMode>1.5) c=uTint2*(.35+l);
       vec3 vel3=texture2D(tVel,ref).xyz; float speed=length(vel3); vR=r; vDir=vel3.xy;
@@ -1211,7 +1261,7 @@ const pointsMat = new THREE.ShaderMaterial({
       vColor=c; vAlpha=.7+.3*sin(uTime*2.+r*60.);
     }`,
   fragmentShader: `
-    varying vec3 vColor; varying float vAlpha; varying float vDens; varying float vR; varying vec2 vDir; uniform float uOpacity,uInk,uHide,uStyle,uTime; uniform sampler2D tDigits;
+    varying vec3 vColor; varying float vAlpha; varying float vDens; varying float vR; varying vec2 vDir; uniform float uOpacity,uInk,uHide,uStyle,uTime; uniform sampler2D tDigits,tSprite;
     void main(){ vec2 q=gl_PointCoord-.5; float d=length(q); float sh;
       if(uStyle<.5){ if(d>.5) discard; sh=uInk>.5?smoothstep(.5,.35,d):pow(1.-d*2.,1.6); }
       else if(uStyle<1.5) sh=smoothstep(.5,.28,abs(q.x))*smoothstep(.07,.0,abs(q.y));                       // horizontal dash
@@ -1222,7 +1272,8 @@ const pointsMat = new THREE.ShaderMaterial({
         sh=texture2D(tDigits,vec2((idx+q.x+.5)/10.,.5-q.y)).r; }
       else if(uStyle<5.5) sh=min(1.,max(smoothstep(.05,0.,abs(q.x))*smoothstep(.5,0.,abs(q.y)),smoothstep(.05,0.,abs(q.y))*smoothstep(.5,0.,abs(q.x)))+smoothstep(.16,0.,d));   // star
       else if(uStyle<6.5) sh=step(max(abs(q.x),abs(q.y)),.4);                                                // pixel
-      else sh=smoothstep(.06,0.,abs(d-.34));                                                                  // ring
+      else if(uStyle<7.5) sh=smoothstep(.06,0.,abs(d-.34));                                                  // ring
+      else { vec4 sp=texture2D(tSprite,vec2(q.x+.5,.5-q.y)); sh=sp.a*max(sp.r,max(sp.g,sp.b)); }           // your own sign / logo                                                                  // ring
       if(sh<.01) discard;
       float a=sh*vAlpha*uOpacity*vDens; if(uInk>.5) a=sh*uOpacity;
       a*=1.-uHide;
@@ -1263,7 +1314,7 @@ function buildSim(startMode = 'cloud') {
   sim = {
     uTime: { value: 0 }, uDelta: { value: 0.016 }, uMorph: { value: 1 }, uSpring: { value: .6 }, uDamping: { value: .92 }, uNoise: { value: .35 },
     uFlight: { value: 1 }, uScatter: { value: 0 }, uWave: { value: .6 }, uPointerRadius: { value: .5 }, uPointerStrength: { value: 0 }, uShock: { value: 0 },
-    uTrans: { value: 0 }, uWind: { value: 0 }, uGravity: { value: 0 }, uPour: { value: 0 }, uPourY: { value: 2.2 }, uPulse: { value: 0 }, uFlat: { value: 0 }, uVortex: { value: 0 }, uAttract: { value: 0 }, uBlow: { value: 0 }, uScan: { value: -9 }, uRain: { value: 0 }, uBlowDir: { value: new THREE.Vector3(1, 0, 0) },
+    uTrans: { value: 0 }, uWind: { value: 0 }, uGravity: { value: 0 }, uPour: { value: 0 }, uPourY: { value: 2.2 }, uPulse: { value: 0 }, uFlat: { value: 0 }, uVortex: { value: 0 }, uAttract: { value: 0 }, uBlow: { value: 0 }, uScan: { value: -9 }, uRain: { value: 0 }, uHoverMode: { value: 0 }, uShockMode: { value: 0 }, uBlowDir: { value: new THREE.Vector3(1, 0, 0) },
     uPointer: { value: new THREE.Vector3(99, 99, 99) }, uPointerVel: { value: new THREE.Vector3() }, uShockOrigin: { value: new THREE.Vector3(99, 99, 99) },
     tFrom: { value: texFrom }, tTo: { value: texTo }
   };
@@ -2893,6 +2944,13 @@ const retroPass = new ShaderPass({
         float sp=.006*uAmt+.02*g*uAmt;
         col=vec3(texture2D(tDiffuse,uv+vec2(sp,0.)).r,texture2D(tDiffuse,uv).g,texture2D(tDiffuse,uv-vec2(sp,0.)).b);
         col*=.88+.12*sin(px.y*3.14159*.5); if(g>.5&&h(vec2(band,tt+2.))>.7) col=1.-col;
+      } else if(uMode>5.5){ // hologram: cyan projection, scanlines, flicker, sweeping light band, jitter
+        float band=floor(vUv.y*90.); float jit=(h(vec2(floor(uTime*14.),band))-.5)*.01*step(.9,h(vec2(floor(uTime*4.),floor(band*.2))))*uAmt*2.;
+        vec3 c=texture2D(tDiffuse,vUv+vec2(jit,0.)).rgb; float l=lum(c);
+        vec3 holo=mix(vec3(.02,.25,.5),vec3(.6,1.,1.),smoothstep(0.,.8,l))*(.3+l*1.5);
+        float scan=.72+.28*sin(px.y*1.7-uTime*24.); float flick=.9+.1*sin(uTime*47.)*sin(uTime*13.);
+        float sweep=1.-smoothstep(0.,.02,abs(fract(vUv.y+uTime*.17)-.5));
+        col=holo*scan*flick+vec3(.35,1.,1.)*sweep*.35*step(.03,l)+vec3(texture2D(tDiffuse,vUv+vec2(.005,0.)).r,0.,0.)*.12;
       } else { // melt / pixel-sort look: bright pixels smear downward
         float thr=.55-uAmt*.3; vec3 best=col; float bl=lum(col);
         for(int i=1;i<28;i++){ vec3 s=texture2D(tDiffuse,vUv+vec2(0.,float(i)*cs/uRes.y)).rgb; float l=lum(s); if(l>thr&&l>bl){ best=s; bl=l; } }
@@ -3433,6 +3491,111 @@ $('scenarios').addEventListener('click', e => {
   for (const [k, v] of Object.entries(sc.look || {})) setCtl(k, v);
   applyLook(); applyStyle();
 }, true);
+
+/* ============================================================
+   PREMIUM LOOKS + FIRST IMPRESSION
+   - your own sign or logo as the particle shape
+   - neon contour and hologram scenarios
+   - a self-playing demo through the example shapes until the first click
+   ============================================================ */
+const sprite = { img: null };
+const spriteCanvas = document.createElement('canvas'); spriteCanvas.width = spriteCanvas.height = 128;
+const spriteTex = new THREE.CanvasTexture(spriteCanvas); spriteTex.minFilter = THREE.LinearFilter; spriteTex.generateMipmaps = false;
+renderUniforms.tSprite.value = spriteTex;
+function drawSprite() {
+  const x = spriteCanvas.getContext('2d'); x.clearRect(0, 0, 128, 128);
+  if (sprite.img) {
+    const s = Math.min(112 / sprite.img.width, 112 / sprite.img.height), w = sprite.img.width * s, h = sprite.img.height * s;
+    x.drawImage(sprite.img, (128 - w) / 2, (128 - h) / 2, w, h);
+    // keep the logo's shape, paint it white so each particle can carry its own colour
+    x.globalCompositeOperation = 'source-in'; x.fillStyle = '#fff'; x.fillRect(0, 0, 128, 128); x.globalCompositeOperation = 'source-over';
+  } else {
+    x.fillStyle = '#fff'; x.textAlign = 'center'; x.textBaseline = 'middle';
+    x.font = '700 100px "Bricolage Grotesque", "Segoe UI Symbol", "Apple Color Emoji", sans-serif';
+    x.fillText(($('spriteChar').value || '★').slice(0, 3), 64, 70, 120);
+  }
+  spriteTex.needsUpdate = true;
+}
+STYLES.push(['8', 'Własny znak / logo']); STYLE_SCALE[8] = 2.4;
+$('pStyle').insertAdjacentHTML('beforeend', '<option value="8">Własny znak / logo</option>');
+$('spriteChar').addEventListener('input', () => { sprite.img = null; drawSprite(); if ($('pStyle').value !== '8') { $('pStyle').value = '8'; applyStyle(); } });
+$('spriteFile').onchange = async e => { const f = e.target.files[0]; e.target.value = ''; if (!f) return; try { sprite.img = await fileToImage(f); drawSprite(); $('pStyle').value = '8'; applyStyle(); toast('Twoje logo jest teraz kształtem każdej cząsteczki'); } catch { toast('Nie udało się odczytać obrazu'); } };
+drawSprite();
+document.fonts?.ready.then(drawSprite);
+
+/* neon contour: rebuild picture shapes when switched */
+$('contourOnly').addEventListener('change', () => refreshAllImages());
+
+/* more scenarios */
+const PREMIUM = [
+  { id: 'neon', name: 'Neonowy kontur', desc: 'Same świecące krawędzie produktu, rysowane laserem.', look: { contourOnly: true, colorMode: '1', tint1: '#ff2bd6', tint2: '#29f0ff', additive: true, bg: 'black', bloom: 1.6, opacity: 0.7, pStyle: '0' }, steps: () => [P0, { t: 0.3, act: 'scan' }, { t: 5.5, act: 'vortex' }, { t: 10, act: 'sweep' }], tail: 3 },
+  { id: 'holo', name: 'Hologram', desc: 'Niebieska projekcja z liniami skanu i migotaniem.', look: { retroMode: '6', additive: true, bg: 'black', pStyle: '0', contourOnly: false }, steps: () => [P0, { t: 0, act: 'reform', arg: 'rain' }, { t: 7, act: 'blow' }], tail: 6, cam: 'orbit' },
+  { id: 'mylogo', name: 'Rój z Twojego logo', desc: 'Każda cząsteczka ma kształt Twojego znaku (★ albo wgrane logo).', look: { pStyle: '8', styleLen: 1.2, contourOnly: false }, steps: () => [P0, { t: 0, act: 'style', arg: '8' }, { t: 0, act: 'reform', arg: 'pour' }, { t: 8, act: 'fireworks' }], tail: 5 },
+];
+SCENARIOS.push(...PREMIUM);
+$('scenarios').insertAdjacentHTML('beforeend', PREMIUM.map(s => `<button type="button" class="scenario" data-id="${s.id}"><b>${s.name}</b><span>${s.desc}</span></button>`).join(''));
+$('scenarios').addEventListener('click', e => {
+  const b = e.target.closest('.scenario'); const sc = b && PREMIUM.find(x => x.id === b.dataset.id); if (!sc) return;
+  for (const [k, v] of Object.entries(sc.look || {})) setCtl(k, v);
+  applyLook(); applyStyle();
+}, true);
+
+/* ---------- first impression: a self-playing tour of the example shapes ---------- */
+const demo = { on: false };
+function demoSteps() {
+  const st = [{ t: 0, act: 'reform', arg: 'cloud' }];
+  let t = 3.6;
+  for (let i = 1; i < shapes.length; i++, t += 3.4) st.push({ t, act: 'goto', arg: i });
+  st.push({ t, act: 'goto', arg: 0 }, { t: t + 3, act: 'scatter', arg: '' });
+  return st;
+}
+function demoLoop() {
+  if (!demo.on || rendering) return;
+  steps = demoSteps(); renderSteps(); setRange('seqTail', 3.2);
+  playSeq(() => { if (demo.on) setTimeout(demoLoop, 600); });
+}
+function demoStop() {
+  if (!demo.on) return;
+  demo.on = false; if (seq.playing) stopSeq();
+  steps = DEFAULT_STEPS(); renderSteps(); setRange('seqTail', 3.6);
+  hist.cur = histSnap(); hist.undo.length = 0; histUI();       // the tour is not part of the user's history
+  $('demoNote').hidden = true;
+}
+['pointerdown', 'keydown', 'wheel', 'dragover'].forEach(ev => addEventListener(ev, demoStop, { capture: true, once: false }));
+if (!window.ROJ_EMBED) setTimeout(() => {
+  let restored = false; try { restored = !!localStorage.getItem('roj-demo-seen'); } catch {}
+  demo.on = true; $('demoNote').hidden = false; demoLoop();
+  try { localStorage.setItem('roj-demo-seen', '1'); } catch {}
+}, 1800);
+
+/* ============================================================
+   CURSOR — what happens when you hover over and click the picture
+   ============================================================ */
+const PALETTES = [['#ff2bd6', '#29f0ff'], ['#1b4dff', '#8ff3e6'], ['#ff6a00', '#ffe29a'], ['#00c853', '#e8ff7a'], ['#7b2cff', '#ff9bd2']];
+let palIdx = 0;
+shock = function (at) {                       // replaces the core click handler
+  if (reduced || !sim) return;
+  const m = +$('clickMode').value;
+  if (m === 7) return;
+  if (m === 5) { goTo((shownIdx() + 1) % shapes.length); sim.uShockMode.value = 0; sim.uShockOrigin.value.copy(at); sim.uShock.value = .5; return; }
+  if (m === 6) { const [a, b] = PALETTES[palIdx++ % PALETTES.length]; $('colorMode').value = '1'; $('tint1').value = a; $('tint2').value = b; applyLook(); sim.uShockMode.value = 3; sim.uShockOrigin.value.copy(at); sim.uShock.value = 1; return; }
+  sim.uShockMode.value = m; sim.uShockOrigin.value.copy(at);
+  sim.uShock.value = 1;
+  if (m === 2) cursorFx.hole = 1.1;            // pull in for a second, then spit out
+  if (m === 4) mv.fireT = Math.max(mv.fireT, 2);
+};
+const cursorFx = { hole: 0 };
+hooks.tick.push(dt => {
+  if (!sim) return;
+  const hm = +$('hoverMode').value;
+  sim.uHoverMode.value = hm >= 5 ? 9 : hm;           // 5 = glow only, 6 = nothing: no force
+  if (hm > 0 && hm < 5) sim.uPointerStrength.value = reduced ? 0 : P.pStrength * (0.9 + ptr.energy * 1.2);
+  if (cursorFx.hole > 0) { cursorFx.hole -= dt; sim.uShock.value = 1; if (cursorFx.hole <= 0) sim.uShock.value = -1.2; }
+  if (sim.uShockMode.value === 2 && sim.uShock.value < 0) sim.uShock.value *= Math.exp(-dt * 2);
+  renderUniforms.uPointerR.value.copy(ptr.active ? ptr.world : FAR);
+  renderUniforms.uHoverGlow.value = $('hoverGlow').checked && hm !== 6 ? 1 : 0;
+  renderUniforms.uHoverR.value = P.pRadius;
+});
 /* ============================================================
    Boot + realtime loop
    ============================================================ */

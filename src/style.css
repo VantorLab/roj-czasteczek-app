@@ -145,6 +145,7 @@ kbd{font-family:var(--font-mono);font-size:11px;border:1px solid var(--line);bor
 .scenario b{font-weight:700;color:var(--foam);font-size:12px}
 .scenario span{font-weight:400;color:var(--mist);font-size:11px;line-height:1.35}
 .scenario.on{border-color:var(--glow);box-shadow:0 0 0 1px var(--glow)}
+.demo-note{position:absolute;left:50%;top:max(18px,env(safe-area-inset-top,0px));transform:translateX(-50%);z-index:3;font-family:var(--font-mono);font-size:11px;letter-spacing:.06em;color:var(--glow);background:color-mix(in srgb,var(--abyss) 70%,transparent);border:1px solid var(--line);border-radius:999px;padding:5px 12px;pointer-events:none;white-space:nowrap}
 @media (max-width:760px){
   .app.panel-hidden{grid-template-rows:100% 0}
   .app{grid-template-columns:minmax(0,1fr);grid-template-rows:52% 48%}
