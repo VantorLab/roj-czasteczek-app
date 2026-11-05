@@ -1,0 +1,388 @@
+<div class="app">
+  <div class="stage" id="stage">
+    <div class="brand" id="brand">
+      <h1 id="brandName">Rój Cząsteczek</h1>
+      <p>Zdjęcie, logo, napis albo model 3D rozbite na setki tysięcy świecących punktów. Przeciągnij plik tutaj.</p>
+    </div>
+    <dl class="hud" id="hud">
+      <dt>Cząsteczki</dt><dd id="hudCount">65 536</dd>
+      <dt>Kształt</dt><dd id="hudShape">1</dd>
+      <dt>Klatki</dt><dd id="hudFps">–</dd>
+    </dl>
+    <div class="hint" id="hint"><kbd>M</kbd> poprzedni kształt · <kbd>1</kbd>–<kbd>6</kbd> kształt · <kbd>Spacja</kbd> rozsyp<br>klik = fala uderzeniowa · przeciągnij = obrót · kółko = zoom</div>
+    <div class="rec-badge" id="recBadge" hidden><i></i><span id="recTime">REC 0.0 s</span></div>
+    <div class="drop" id="drop" hidden>Upuść zdjęcie lub model GLB, aby dodać kształt</div>
+    <div class="safe" id="safe" hidden><i class="sz-top">Strefa nagłówka</i><i class="sz-bottom">Opis i przyciski aplikacji</i><i class="sz-right">Reakcje</i></div>
+    <video id="handVideo" class="hand-video" playsinline muted hidden></video>
+    <div class="kiosk" id="kiosk" hidden>
+      <div class="kiosk-qr"><canvas id="qrCanvas" width="160" height="160"></canvas><span>Zeskanuj telefonem</span></div>
+      <span class="file-btn kiosk-shot"><button type="button" class="primary" tabindex="-1">Zrób zdjęcie</button><input id="kioskFile" type="file" accept="image/*" capture="environment" aria-label="Zrób zdjęcie"></span>
+      <button type="button" class="kiosk-exit" id="kioskExit">Zamknij tryb klienta</button>
+    </div>
+    <div class="busy" id="busy" hidden><b id="busyTitle">Pracuję…</b><span id="busyText"></span><progress id="busyProg" max="1"></progress></div>
+  </div>
+
+  <aside class="panel" aria-label="Ustawienia efektu">
+    <nav class="tabs" role="tablist" id="tabs">
+      <button role="tab" aria-selected="false" data-tab="ai" class="tab-ai">Doradca AI</button>
+      <button role="tab" aria-selected="true" data-tab="shapes">Kształty</button>
+      <button role="tab" aria-selected="false" data-tab="fx">Efekty</button>
+      <button role="tab" aria-selected="false" data-tab="motion">Ruch</button>
+      <button role="tab" aria-selected="false" data-tab="look">Wygląd</button>
+      <button role="tab" aria-selected="false" data-tab="seq">Sekwencja</button>
+      <button role="tab" aria-selected="false" data-tab="sound">Dźwięk</button>
+      <button role="tab" aria-selected="false" data-tab="brand">Marka</button>
+      <button role="tab" aria-selected="false" data-tab="export">Eksport</button>
+    </nav>
+
+    <div class="pane" data-pane="ai" hidden>
+      <section>
+        <h2>Wrzuć i zrób za mnie <small id="aiEngine">…</small></h2>
+        <div class="btns"><span class="file-btn"><button type="button" tabindex="-1">Wrzuć zdjęcie lub logo</button><input id="aiFile" type="file" accept="image/*" aria-label="Wrzuć zdjęcie lub logo do analizy"></span></div>
+        <div class="row two"><label for="aiGoal">Cel / uwagi</label><input id="aiGoal" type="text" maxlength="200" placeholder="np. rolka na Instagram, luksusowo, cena 6900 zł"></div>
+        <div class="btns"><button type="button" class="primary" id="aiGo">Zaproponuj i zastosuj</button><button type="button" id="aiStop" hidden>Zatrzymaj</button></div>
+        <p class="note ai-status" id="aiStatus" aria-live="polite">Doradca obejrzy obraz, dobierze efekt, ruch kamery, kolory, napisy i sekwencję, a potem od razu ją odtworzy.</p>
+        <div class="ideas" id="aiIdeas"></div>
+      </section>
+      <section>
+        <h2>Popraw słowami</h2>
+        <textarea id="aiChat" rows="2" aria-label="Polecenie dla doradcy" placeholder="np. bardziej dynamicznie, złote napisy, krócej, dodaj rozbite szkło na końcu"></textarea>
+        <div class="btns"><button type="button" id="aiChatGo">Zastosuj poprawkę</button></div>
+      </section>
+      <section>
+        <h2>Oceń wynik <small>tak się uczy</small></h2>
+        <div class="btns"><button type="button" id="aiUp">Podoba się</button><button type="button" id="aiDown">Nie podoba się</button><button type="button" id="aiWin">Wygrał test A/B</button></div>
+        <p class="note">Każda ocena trafia do <b id="aiMem">pamięci</b>. Przy kolejnych projektach Doradca powtarza to, co działało, i unika tego, co nie działało.</p>
+      </section>
+      <section>
+        <h2>Czego się nauczyłem <small id="aiStats"></small></h2>
+        <ul class="lessons" id="aiLessons"></ul>
+        <div class="btns"><button type="button" id="aiDistill">Przeanalizuj doświadczenia</button></div>
+      </section>
+      <section id="aiKeyBox">
+        <h2>Silnik AI poza Claude</h2>
+        <div class="row two"><label for="aiKey">Klucz API</label><div class="pair"><input id="aiKey" type="password" autocomplete="off" placeholder="sk-ant-…"><button type="button" id="aiKeySave">Zapisz</button></div></div>
+        <p class="note">W aplikacji na Windows i telefon Doradca łączy się z Claude Twoim kluczem API Anthropic (płatność za użycie, zwykle grosze za projekt). Klucz zostaje tylko na tym urządzeniu. W wersji online w Claude klucz nie jest potrzebny.</p>
+      </section>
+    </div>
+
+    <div class="pane" data-pane="shapes">
+      <section>
+        <h2>Kształty <small>kliknij miniaturę, by przemienić</small></h2>
+        <div class="shapes" id="shapes"></div>
+        <p class="note">Każdy kształt: zdjęcie, logo, napis, model 3D (GLB) albo forma gotowa. Do 6 kształtów w łańcuchu.</p>
+      </section>
+      <section>
+        <h2>Zdjęcie → cząsteczki</h2>
+        <div class="row two"><label for="bgMode">Tło zdjęcia</label>
+          <select id="bgMode"><option value="none">Zostaw całe zdjęcie</option><option value="dark" selected>Usuń ciemne tło</option><option value="light">Usuń jasne tło</option></select></div>
+        <div class="row"><label for="bgTh">Próg tła</label><input id="bgTh" type="range" min="0" max="0.9" step="0.01" value="0.12"><output for="bgTh"></output></div>
+        <div class="row two"><label for="depthMode">Głębia 3D</label>
+          <select id="depthMode"><option value="lum">Z jasności (szybko)</option><option value="ai">AI · Depth Anything</option></select></div>
+        <div class="row"><label for="depth">Siła głębi</label><input id="depth" type="range" min="0" max="2" step="0.01" value="0.6"><output for="depth"></output></div>
+        <div class="row"><label for="detail">Detal</label><input id="detail" type="range" min="0" max="1" step="0.01" value="0.5"><output for="detail"></output></div>
+        <div class="row"><label for="deglare">Gaś odblaski</label><input id="deglare" type="range" min="0" max="1" step="0.01" value="0"><output for="deglare"></output></div>
+        <p class="note"><span class="chip ai">AI</span> Głębia AI i automatyczne wycinanie tła pobierają model przy pierwszym użyciu (27–115 MB). Działają w pliku HTML otwartym w Chrome lub Edge; podgląd w Claude blokuje pobieranie modeli.</p>
+      </section>
+      <section>
+        <h2>Kolor żywicy <small>stoły epoksydowe</small></h2>
+        <label class="check"><input type="checkbox" id="resinOn"> Przemaluj żywicę, zostaw drewno</label>
+        <div class="swatches" id="resinSwatches"></div>
+        <div class="row two"><label for="resinColor">Kolor żywicy</label><input type="color" id="resinColor" value="#0d6e6a"></div>
+        <div class="row two"><label for="woodColor">Kolor drewna</label><input type="color" id="woodColor" value="#d6a24e"></div>
+        <div class="row"><label for="resinEdge">Granica</label><input id="resinEdge" type="range" min="0.05" max="0.6" step="0.01" value="0.26"><output for="resinEdge"></output></div>
+        <div class="row"><label for="resinMix">Siła koloru</label><input id="resinMix" type="range" min="0" max="1" step="0.01" value="1"><output for="resinMix"></output></div>
+        <p class="note">Program odróżnia drewno od żywicy po barwie. Ustaw „Kolor drewna” na odcień słojów i przesuń „Granicę”, aż przemaluje się tylko żywica. Na osi czasu krok „Kolor żywicy” zmienia kolor w trakcie filmu.</p>
+      </section>
+    </div>
+
+    <div class="pane" data-pane="fx" hidden>
+      <section>
+        <h2>Efekt główny</h2>
+        <div class="row two"><label for="fxMode">Efekt</label>
+          <select id="fxMode"><option value="particles">Cząsteczki</option><option value="relief">Relief 3D (symulator 2.5D)</option><option value="voxels">Klocki z fizyką</option></select></div>
+        <div class="fx-opts" data-for="glass" hidden><p class="note">Obraz pęka na odłamki 3D, które lecą i wracają. „Rozsyp” albo kliknięcie w obraz rozbija szkło; czas leżenia ustawia suwak przy klockach.</p></div>
+        <div class="fx-opts" data-for="relief">
+          <div class="row"><label for="reliefH">Wysokość</label><input id="reliefH" type="range" min="0" max="2.5" step="0.01" value="0.9"><output for="reliefH"></output></div>
+          <div class="row"><label for="reliefShade">Światło</label><input id="reliefShade" type="range" min="0" max="1" step="0.01" value="0.6"><output for="reliefShade"></output></div>
+          <div class="row"><label for="reliefWave">Falowanie</label><input id="reliefWave" type="range" min="0" max="2" step="0.01" value="0.3"><output for="reliefWave"></output></div>
+          <p class="note">Zdjęcie staje się bryłą z mapy głębi. Z głębią AI (zakładka Kształty) wygląda najlepiej. Kamera z zakładki Sekwencja pokazuje relief z boku.</p>
+        </div>
+        <div class="fx-opts" data-for="voxels" hidden>
+          <div class="row two"><label for="voxCount">Liczba klocków</label><select id="voxCount"><option value="4000">4 000</option><option value="9000" selected>9 000</option><option value="16000">16 000</option><option value="25000">25 000</option></select></div>
+          <div class="row"><label for="voxSize">Wielkość klocka</label><input id="voxSize" type="range" min="0.4" max="1.2" step="0.01" value="0.9"><output for="voxSize"></output></div>
+          <div class="row"><label for="voxHold">Leżą na podłodze (s)</label><input id="voxHold" type="range" min="0.5" max="8" step="0.1" value="2.5"><output for="voxHold"></output></div>
+          <p class="note">„Rozsyp” zrzuca klocki na podłogę z fizyką odbić; po chwili wracają na miejsce. „Wylej z góry” to deszcz klocków.</p>
+        </div>
+      </section>
+      <section>
+        <h2>Płyn</h2>
+        <label class="check"><input type="checkbox" id="fluidOn"> Symulacja płynu na obrazie (przeciągnij kursorem)</label>
+        <div class="row two"><label for="fluidColor">Barwnik</label><select id="fluidColor"><option value="resin">Kolor żywicy</option><option value="gold">Złoto</option><option value="rainbow">Tęcza</option><option value="clear">Przezroczysty (tylko falowanie)</option></select></div>
+        <div class="row"><label for="fluidDistort">Zniekształcenie</label><input id="fluidDistort" type="range" min="0" max="2" step="0.01" value="1"><output for="fluidDistort"></output></div>
+        <div class="row"><label for="fluidDye">Ilość barwnika</label><input id="fluidDye" type="range" min="0" max="2" step="0.01" value="0.9"><output for="fluidDye"></output></div>
+        <div class="row"><label for="fluidFade">Zanikanie</label><input id="fluidFade" type="range" min="0.05" max="3" step="0.01" value="0.6"><output for="fluidFade"></output></div>
+        <label class="check"><input type="checkbox" id="fluidAuto"> Samoistny ruch płynu</label>
+        <div class="btns"><button type="button" id="btnFluidPour">Wylej płyn</button><button type="button" id="btnFluidClear">Wyczyść</button></div>
+      </section>
+      <section>
+        <h2>Światło kinowe</h2>
+        <div class="row"><label for="sweepAmt">Połysk</label><input id="sweepAmt" type="range" min="0" max="2" step="0.01" value="0.9"><output for="sweepAmt"></output></div>
+        <div class="row"><label for="sweepEvery">Połysk co (s)</label><input id="sweepEvery" type="range" min="0" max="10" step="0.1" value="0"><output for="sweepEvery"></output></div>
+        <div class="btns"><button type="button" id="btnSweep">Przelot połysku teraz</button></div>
+        <div class="row"><label for="tilt">Rozmycie tła</label><input id="tilt" type="range" min="0" max="1.5" step="0.01" value="0"><output for="tilt"></output></div>
+        <div class="row"><label for="grain">Ziarno filmu</label><input id="grain" type="range" min="0" max="1" step="0.01" value="0"><output for="grain"></output></div>
+        <div class="row"><label for="vignette">Winieta</label><input id="vignette" type="range" min="0" max="1" step="0.01" value="0"><output for="vignette"></output></div>
+        <div class="row"><label for="chroma">Aberracja</label><input id="chroma" type="range" min="0" max="1" step="0.01" value="0"><output for="chroma"></output></div>
+        <p class="note">„Połysk co (s)” = 0 wyłącza automatyczny przelot. Na osi czasu krok „Połysk” uruchamia go w wybranym momencie.</p>
+      </section>
+      <section>
+        <h2>Retro i druk</h2>
+        <div class="row two"><label for="retroMode">Styl</label><select id="retroMode"><option value="0">Wyłączony</option><option value="1">ASCII (znaki)</option><option value="2">Druk rastrowy (halftone)</option><option value="3">Dither (8-bit)</option><option value="4">Glitch / VHS</option><option value="5">Topnienie (pixel-sort)</option></select></div>
+        <div class="row"><label for="retroCell">Wielkość komórki</label><input id="retroCell" type="range" min="4" max="28" step="1" value="10"><output for="retroCell"></output></div>
+        <div class="row"><label for="retroAmt">Intensywność</label><input id="retroAmt" type="range" min="0" max="1" step="0.01" value="0.5"><output for="retroAmt"></output></div>
+        <label class="check"><input type="checkbox" id="retroMono"> Dwa kolory (tusz i papier)</label>
+        <div class="row two"><span class="lb">Tusz / papier</span><div class="pair"><input type="color" id="retroInk" value="#151515" aria-label="Kolor tuszu"><input type="color" id="retroPaper" value="#f2ece0" aria-label="Kolor papieru"></div></div>
+        <p class="note">Działa na każdym efekcie głównym i trafia do wideo. „Szkło” rozbijesz też kliknięciem w obraz.</p>
+      </section>
+    </div>
+
+    <div class="pane" data-pane="motion" hidden>
+      <section>
+        <h2>Przemiana</h2>
+        <div class="row"><label for="morph">Postęp</label><input id="morph" type="range" min="0" max="1" step="0.001" value="1"><output for="morph"></output></div>
+        <div class="row two"><label for="trans">Przejście</label>
+          <select id="trans"><option value="0">Wir</option><option value="1">Fala od rogu</option><option value="2">Piasek</option><option value="3">Rozpuszczanie od dołu</option><option value="4">Odłamki</option></select></div>
+        <div class="row"><label for="morphTime">Czas przemiany</label><input id="morphTime" type="range" min="0.6" max="6" step="0.1" value="2.6"><output for="morphTime"></output></div>
+        <div class="row"><label for="flight">Siła przejścia</label><input id="flight" type="range" min="0" max="3" step="0.01" value="1"><output for="flight"></output></div>
+        <div class="btns">
+          <button type="button" class="primary" id="btnMorph">Poprzedni kształt (M)</button>
+          <button type="button" id="btnScatter">Rozsyp</button>
+        </div>
+        <div class="btns">
+          <button type="button" id="btnReformCloud">Złóż z chmury</button>
+          <button type="button" id="btnReformPour">Wylej z góry</button>
+          <button type="button" id="btnReformFloor">Wznieś z podłogi</button>
+        </div>
+      </section>
+      <section>
+        <h2>Fizyka</h2>
+        <div class="row"><label for="spring">Sprężystość</label><input id="spring" type="range" min="0.05" max="1.5" step="0.01" value="0.6"><output for="spring"></output></div>
+        <div class="row"><label for="damping">Tłumienie</label><input id="damping" type="range" min="0.8" max="0.99" step="0.001" value="0.92"><output for="damping"></output></div>
+        <div class="row"><label for="noise">Falowanie</label><input id="noise" type="range" min="0" max="2" step="0.01" value="0.35"><output for="noise"></output></div>
+        <div class="row"><label for="wave">Oddech</label><input id="wave" type="range" min="0" max="2" step="0.01" value="0.6"><output for="wave"></output></div>
+        <div class="row"><label for="wind">Wiatr</label><input id="wind" type="range" min="-3" max="3" step="0.01" value="0"><output for="wind"></output></div>
+        <div class="row"><label for="gravity">Grawitacja</label><input id="gravity" type="range" min="0" max="3" step="0.01" value="0"><output for="gravity"></output></div>
+        <div class="row"><label for="pStrength">Siła kursora</label><input id="pStrength" type="range" min="0" max="3" step="0.01" value="1"><output for="pStrength"></output></div>
+        <div class="row"><label for="pRadius">Zasięg kursora</label><input id="pRadius" type="range" min="0.1" max="1.5" step="0.01" value="0.5"><output for="pRadius"></output></div>
+        <label class="check"><input type="checkbox" id="autoRot"> Powolny obrót kamery</label>
+      </section>
+    </div>
+
+    <div class="pane" data-pane="look" hidden>
+      <section>
+        <h2>Cząsteczki</h2>
+        <div class="row two"><label for="count">Liczba</label>
+          <select id="count"><option value="128">16 384 · słaby telefon</option><option value="256" selected>65 536 · standard</option><option value="320">102 400 · jak na junkbranding</option><option value="400">160 000 · mocna karta</option><option value="512">262 144 · maksimum</option></select></div>
+        <div class="row"><label for="size">Rozmiar</label><input id="size" type="range" min="0.003" max="0.06" step="0.0005" value="0.015"><output for="size"></output></div>
+        <div class="row"><label for="opacity">Jasność</label><input id="opacity" type="range" min="0.05" max="1" step="0.01" value="0.45"><output for="opacity"></output></div>
+        <div class="row"><label for="bloom">Poświata</label><input id="bloom" type="range" min="0" max="2.5" step="0.01" value="0.7"><output for="bloom"></output></div>
+        <label class="check"><input type="checkbox" id="additive" checked> Świecenie (sumowanie światła)</label>
+        <label class="check"><input type="checkbox" id="autoPerf" checked> Auto-wydajność (mniej cząsteczek, gdy urządzenie nie nadąża)</label>
+        <p class="note">Przy zdjęciach z ciemnymi partiami (portret, mebel) wyłącz świecenie i ustaw „Zostaw całe zdjęcie”.</p>
+      </section>
+      <section>
+        <h2>Szablony stylu</h2>
+        <div class="row two"><label for="preset">Szablon</label><select id="preset"></select></div>
+        <div class="row two"><label for="presetName">Zapisz jako</label><div class="pair"><input id="presetName" type="text" placeholder="Nazwa stylu" maxlength="30"><button type="button" id="presetSave">Zapisz</button></div></div>
+      </section>
+      <section>
+        <h2>Kolor i scena</h2>
+        <div class="row two"><label for="colorMode">Kolory</label>
+          <select id="colorMode"><option value="0">Oryginalne</option><option value="1">Duotone (2 kolory)</option><option value="2">Jeden kolor</option></select></div>
+        <div class="row two"><span class="lb">Barwy</span><div class="pair"><input type="color" id="tint1" value="#1b4dff" aria-label="Barwa cieni"><input type="color" id="tint2" value="#8ff3e6" aria-label="Barwa świateł"></div></div>
+        <div class="row two"><label for="bg">Scena</label>
+          <select id="bg"><option value="abyss">Głębia z promieniami</option><option value="black">Czerń</option><option value="night">Granat</option><option value="paper">Jasne (bez świecenia)</option></select></div>
+      </section>
+    </div>
+
+    <div class="pane" data-pane="seq" hidden>
+      <section>
+        <h2>Oś czasu <small id="seqLen">14.2 s</small></h2>
+        <div class="steps" id="steps"></div>
+        <div class="btns">
+          <button type="button" id="btnAddStep">+ Krok</button>
+          <button type="button" id="btnSeqDefault">Przywróć domyślną</button>
+          <button type="button" id="btnSeqPhoto">Szablon: zdjęcie → rój</button>
+          <button type="button" id="btnSeqResin">Szablon: kolory żywicy</button>
+        </div>
+        <div class="row"><label for="seqTail">Zakończenie</label><input id="seqTail" type="range" min="0.5" max="6" step="0.1" value="3.6"><output for="seqTail"></output></div>
+      </section>
+      <section>
+        <h2>Kamera</h2>
+        <div class="row two"><label for="camMove">Ruch kamery</label>
+          <select id="camMove"><option value="none">Bez ruchu</option><option value="dolly">Najazd</option><option value="orbit">Obrót 360°</option><option value="fly">Przelot nad obiektem</option><option value="vertigo">Dolly zoom (Vertigo)</option><option value="rise">Wznoszenie z dołu</option></select></div>
+        <div class="btns">
+          <button type="button" class="primary" id="btnPlay">Odtwórz sekwencję</button>
+          <button type="button" id="btnStop">Stop</button>
+        </div>
+      </section>
+    </div>
+
+    <div class="pane" data-pane="sound" hidden>
+      <section>
+        <h2>Muzyka <small id="audioName">brak pliku</small></h2>
+        <div class="btns">
+          <span class="file-btn"><button type="button" tabindex="-1">Wgraj muzykę</button><input id="audioFile" type="file" accept="audio/*" aria-label="Wgraj plik audio"></span>
+          <button type="button" id="audioPlay" disabled>Odtwórz</button>
+          <button type="button" id="audioClear" disabled>Usuń</button>
+        </div>
+        <canvas id="audioWave" width="320" height="56" style="width:100%;height:56px;border:1px solid var(--line);border-radius:5px;background:var(--abyss)"></canvas>
+        <div class="row"><label for="pulse">Pulsowanie</label><input id="pulse" type="range" min="0" max="2" step="0.01" value="1"><output for="pulse"></output></div>
+        <label class="check"><input type="checkbox" id="beatMorph"> Przemiana na mocnym uderzeniu</label>
+        <label class="check"><input type="checkbox" id="audioInSeq" checked> Graj muzykę razem z sekwencją i dodawaj do wideo</label>
+        <p class="note">Rój pulsuje w rytm basu. Wykryte uderzenia: <b id="beatCount">0</b>. Muzyka trafia do pliku MP4 z renderu idealnego.</p>
+      </section>
+      <section>
+        <h2>Lektor <small id="voiceName">brak pliku</small></h2>
+        <div class="btns">
+          <span class="file-btn"><button type="button" tabindex="-1">Wgraj nagranie lektora</button><input id="voiceFile" type="file" accept="audio/*" aria-label="Wgraj nagranie lektora"></span>
+          <button type="button" id="voiceClear" disabled>Usuń</button>
+        </div>
+        <div class="row"><label for="voiceAt">Start (s)</label><input id="voiceAt" type="range" min="0" max="12" step="0.1" value="1"><output for="voiceAt"></output></div>
+        <div class="row"><label for="duck">Ściszanie muzyki</label><input id="duck" type="range" min="0" max="1" step="0.01" value="0.65"><output for="duck"></output></div>
+        <p class="note">Głos trafia do renderu MP4 razem z muzyką; muzyka cichnie, gdy mówi lektor. Nagranie lektora i muzykę mogę wygenerować AI (Higgsfield), jeśli poprosisz w rozmowie.</p>
+      </section>
+      <section>
+        <h2>Sterowanie dłonią</h2>
+        <div class="btns"><button type="button" id="handBtn">Włącz kamerę i steruj dłonią</button></div>
+        <p class="note">Palec wskazujący rozpycha rój, uszczypnięcie (kciuk + palec) wywołuje falę uderzeniową. Na targi, do salonu albo na prezentację. Kamera działa w pliku HTML otwartym w przeglądarce.</p>
+      </section>
+      <section>
+        <h2>Tryb klienta</h2>
+        <div class="btns"><button type="button" id="kioskBtn">Uruchom tryb klienta</button></div>
+        <p class="note">Ekran bez panelu z dużym przyciskiem „Zrób zdjęcie”. Klient fotografuje swój mebel lub wnętrze i od razu widzi je jako rój. Kod QR prowadzi do tej strony na telefonie.</p>
+      </section>
+    </div>
+
+    <div class="pane" data-pane="brand" hidden>
+      <section>
+        <h2>Napisy i wezwanie do działania</h2>
+        <label class="check"><input type="checkbox" id="ovOn"> Pokaż napisy w kadrze i w wideo</label>
+        <div class="row two"><label for="ovTitle">Tytuł</label><input id="ovTitle" type="text" value="Stół Burl &amp; Żywica" maxlength="40"></div>
+        <div class="row two"><label for="ovSub">Podtytuł / cena</label><input id="ovSub" type="text" value="Ręcznie robiony · od 6 900 zł" maxlength="60"></div>
+        <div class="row two"><label for="ovCta">Przycisk</label><input id="ovCta" type="text" value="Zamów wycenę" maxlength="30"></div>
+        <div class="row two"><label for="ovPos">Położenie</label>
+          <select id="ovPos"><option value="bottom">Na dole</option><option value="top">Na górze</option><option value="center">Na środku</option></select></div>
+        <div class="row two"><span class="lb">Kolory</span><div class="pair"><input type="color" id="ovColor" value="#ffffff" aria-label="Kolor tekstu"><input type="color" id="ovCtaBg" value="#e8b45a" aria-label="Kolor przycisku"></div></div>
+        <div class="row"><label for="ovSize">Wielkość</label><input id="ovSize" type="range" min="0.6" max="1.6" step="0.01" value="1"><output for="ovSize"></output></div>
+        <div class="row"><label for="ovFrom">Pokaż od (s)</label><input id="ovFrom" type="range" min="0" max="20" step="0.1" value="1"><output for="ovFrom"></output></div>
+      </section>
+      <section>
+        <h2>Logo</h2>
+        <div class="btns">
+          <span class="file-btn"><button type="button" tabindex="-1">Wgraj logo (PNG)</button><input id="logoFile" type="file" accept="image/*" aria-label="Wgraj logo"></span>
+          <button type="button" id="logoClear" disabled>Usuń logo</button>
+        </div>
+        <div class="row two"><label for="logoPos">Położenie</label>
+          <select id="logoPos"><option value="tr">Prawy górny róg</option><option value="tl">Lewy górny róg</option><option value="br">Prawy dolny róg</option><option value="bl">Lewy dolny róg</option></select></div>
+        <div class="row"><label for="logoSize">Wielkość</label><input id="logoSize" type="range" min="0.05" max="0.4" step="0.01" value="0.16"><output for="logoSize"></output></div>
+      </section>
+      <section>
+        <h2>Znak wodny</h2>
+        <label class="check"><input type="checkbox" id="wmOn"> Wypal znak wodny w wideo</label>
+        <div class="row two"><label for="wmText">Tekst</label><input id="wmText" type="text" value="© Twoja marka" maxlength="40"></div>
+        <div class="row two"><label for="wmStyle">Styl</label><select id="wmStyle"><option value="corner">Mały, w rogu</option><option value="tile">Ukośny wzór na całym kadrze</option></select></div>
+        <div class="row"><label for="wmAlpha">Widoczność</label><input id="wmAlpha" type="range" min="0.05" max="0.6" step="0.01" value="0.18"><output for="wmAlpha"></output></div>
+      </section>
+      <section>
+        <h2>Twoja marka w aplikacji</h2>
+        <div class="row two"><label for="appName">Nazwa aplikacji</label><input id="appName" type="text" value="Rój Cząsteczek" maxlength="32"></div>
+        <div class="row two"><label for="appAccent">Kolor akcentu</label><input type="color" id="appAccent" value="#8ff3e6"></div>
+        <p class="note">Zmień nazwę i kolor, zapisz projekt albo eksportuj stronę, i oddaj klientowi narzędzie pod jego marką.</p>
+      </section>
+    </div>
+
+    <div class="pane" data-pane="export" hidden>
+      <section>
+        <h2>Kadr</h2>
+        <div class="row two"><label for="frame">Format</label>
+          <select id="frame"><option value="full">Cały ekran</option><option value="9:16">9:16 · Rolka / Story</option><option value="1:1">1:1 · Post</option><option value="4:5">4:5 · Post pionowy</option><option value="16:9">16:9 · YouTube</option></select></div>
+        <div class="row two"><label for="quality">Podgląd</label>
+          <select id="quality"><option value="1">Szybki</option><option value="2" selected>Ostry (2×)</option></select></div>
+        <label class="check"><input type="checkbox" id="safeZones" checked> Pokaż strefy zasłaniane przez Instagram / TikTok (tylko podgląd)</label>
+      </section>
+      <section>
+        <h2>Render idealny <small>klatka po klatce</small></h2>
+        <div class="row two"><label for="rRes">Rozdzielczość</label>
+          <select id="rRes"><option value="720">720p (szybko)</option><option value="1080" selected>1080p · Full HD</option><option value="2160">4K</option></select></div>
+        <div class="row two"><label for="rFps">Klatki</label>
+          <select id="rFps"><option value="30" selected>30 kl./s</option><option value="60">60 kl./s</option></select></div>
+        <label class="check"><input type="checkbox" id="loopOn"> Idealna pętla (koniec płynnie przechodzi w początek)</label>
+        <div class="btns">
+          <button type="button" class="primary" id="btnRender">Renderuj MP4</button>
+          <button type="button" id="btnGif">Renderuj GIF</button>
+        </div>
+        <p class="note">Renderuje sekwencję z zakładki „Sekwencja” idealnie płynnie, niezależnie od mocy komputera, razem z napisami, logo i muzyką. Kadr bierze z ustawienia „Format”.</p>
+      </section>
+      <section>
+        <h2>Warianty do testów A/B</h2>
+        <div class="row two"><label for="abCount">Liczba wariantów</label><select id="abCount"><option>3</option><option selected>4</option><option>5</option></select></div>
+        <div class="btns"><button type="button" id="btnAB">Renderuj warianty (ZIP)</button></div>
+        <p class="note">Z jednego projektu powstają filmy różniące się przejściem, ruchem kamery, początkiem i kolorem żywicy. Wrzuć je jako test A/B w kampanii; wygra najlepszy.</p>
+      </section>
+      <section>
+        <h2>Cały katalog naraz</h2>
+        <div class="btns"><span class="file-btn"><button type="button" tabindex="-1">Wybierz zdjęcia produktów…</button><input id="batchFiles" type="file" accept="image/*" multiple aria-label="Wybierz wiele zdjęć"></span></div>
+        <p class="note">Każde zdjęcie trafia do kształtu 1 i dostaje własny film z tą samą sekwencją, stylem i napisami. Wynik: jedno archiwum ZIP.</p>
+      </section>
+      <section>
+        <h2>Strona WWW</h2>
+        <div class="btns"><button type="button" id="btnEmbed">Eksportuj stronę z efektem</button></div>
+        <p class="note">Plik HTML z rojem na całą stronę: przewijanie przemienia kształty i rozsypuje rój, kursor go rozpycha. Wgraj na hosting albo osadź w ramce.</p>
+      </section>
+      <section>
+        <h2>Publikacja</h2>
+        <textarea id="caption" rows="5" aria-label="Opis do posta"></textarea>
+        <div class="btns"><button type="button" id="btnCaption">Ułóż opis</button><button type="button" id="btnCopyCap">Kopiuj opis</button></div>
+        <p class="note">Opis z hashtagami pod rolkę. Na Facebooka i Instagram wrzucę gotowy film przez konektor, gdy mi go prześlesz w rozmowie.</p>
+      </section>
+      <section>
+        <h2>Projekt</h2>
+        <div class="btns">
+          <button type="button" id="btnSaveProj">Zapisz projekt</button>
+          <span class="file-btn"><button type="button" tabindex="-1">Wczytaj projekt</button><input id="projFile" type="file" accept=".json,application/json" aria-label="Wczytaj projekt"></span>
+          <button type="button" id="btnRestore" hidden>Przywróć ostatnie ustawienia</button>
+        </div>
+        <p class="note">Plik projektu zawiera zdjęcia, obrysy, modele, sekwencję, napisy i ustawienia. Ustawienia (bez zdjęć) zapisują się też same w tej przeglądarce.</p>
+      </section>
+      <section>
+        <h2>Nagrywanie na żywo</h2>
+        <div class="btns">
+          <button type="button" class="primary" id="btnSeqRec">Nagraj sekwencję</button>
+          <button type="button" id="btnRec">Nagrywaj ręcznie</button>
+          <button type="button" id="btnPng">Zrzut PNG</button>
+        </div>
+        <p class="note" id="recNote">Nagrywa to, co widać, w czasie rzeczywistym. Gotowe wideo pojawi się poniżej.</p>
+        <video class="preview" id="preview" controls playsinline loop hidden></video>
+        <div class="btns" id="saveRow" hidden><button type="button" id="btnSaveVid">Zapisz wideo</button></div>
+      </section>
+    </div>
+  </aside>
+</div>
+
+<div class="modal" id="maskModal" hidden role="dialog" aria-modal="true" aria-labelledby="maskTitle">
+  <header>
+    <h3 id="maskTitle">Obrysuj obiekt</h3>
+    <div class="btns">
+      <button type="button" id="maskAI"><span class="chip ai">AI</span> Wytnij automatycznie</button>
+      <button type="button" id="maskUndo">Cofnij punkt</button>
+      <button type="button" id="maskClear">Wyczyść</button>
+      <button type="button" id="maskCancel">Anuluj</button>
+      <button type="button" class="primary" id="maskApply">Zastosuj</button>
+    </div>
+  </header>
+  <p class="note">Klikaj wokół obiektu, by postawić punkty obrysu; przeciągnij punkt, by go przesunąć. Wszystko poza obrysem zniknie.</p>
+  <div class="canvas-wrap"><canvas id="maskCanvas"></canvas></div>
+</div>
+<div class="toast" id="toast" hidden></div>

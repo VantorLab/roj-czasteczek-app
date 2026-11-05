@@ -1,0 +1,16 @@
+[package]
+name = "roj-czasteczek"
+version = "1.0.0"
+description = "Rój Cząsteczek"
+edition = "2021"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+
+[profile.release]
+strip = true
+lto = true
+codegen-units = 1
